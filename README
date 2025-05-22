@@ -1,3 +1,5 @@
+# How to use this repository
+
 This folder can be used to produce all reported analyses, perform data preprocessing (the output of which is in the data_codebook folder), and generate figures and tables for the paper.
 
 In principle to reproduce this paper you have to follow the steps below:
