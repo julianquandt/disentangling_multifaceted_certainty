@@ -1,0 +1,145 @@
+# Experiment 4
+
+Experiment 4 used the same stimuli and procedure as Experiment 3, but with a different matching design.
+Specifically, to identify whether the effect of component certainty on ensemble certainty is driven by the consistency of the evidence _within_ components, we created ensembles matched on within-component consistency but differing in average component value extremity (to isolate the effect of value extremity when equalizing within-component consistency), and vice versa (i.e. isolating the effect of within-component consistency when equalizing value extremity).
+
+## Method
+
+### Participants
+
+Running a power simulation based on the data from Experiment 3 (see SOM for details), we again collected 90 participants (36 female, 53 male, 1 genderfluid (free-response box); M_{age} = 30.61, SD_{age} = 9.19) from a Dutch online sample on Prolific (www.prolific.co).
+
+### Materials and Procedures
+
+We used the same stimuli and evaluation procedure (BDM bidding task) as in Experiment 3.
+
+#### Component Evaluation task
+
+The component evaluation task was identical to Experiment 3.
+
+#### Ensemble creation
+
+To create the ensembles, we used the same algorithm as in Experiment 2 and 3, but with different matching criteria.
+Half the ensembles were created to be matched on component value extremity (as in Experiment 3) but instead of maximizing differences in average component certainty within matched pairs, we maximized differences within these ensemble pairs in terms of  _within_-component consistency (operationalized as a smaller standard deviation of multiple evaluations for the same component).
+For the other half of ensembles, this matching criterion was reversed, creating ensemble pairs matched on within-component consistency but differing in average component value extremity.
+ 
+#### Ensemble Evaluation Task
+The ensemble evaluation task was identical to Experiment 3.
+However, while bids were hypothetical in Experiment 3, Experiment 4 included a raffle where one participant was randomly selected to receive one of the goods they had bid on.
+
+
+### Data Analysis
+
+The general approach to data analysis was identical to Experiment 3.
+However, we did not preregister a ROPE in Experiment 4. This is because we see any small effect of value extremity on ensemble certainty when within-component consistency is equalized as contradicting the idea that within-component consistency is the causal mechanism behind the effect of value extremity on ensemble certainty (hence conducting a more conservative test of our prediction).
+The Beta-Binomial model in Experiment 4 predicted ensemble certainty from the matching condition (low vs. high within-component consistency or low vs. high component value extremity), the matching method (matched on value extremity vs. matched on within-component consistency), and the interaction of matching method by matching condition.
+
+## Results
+
+### Manipulation Checks: Resulting Matched Ensembles
+
+```{r man_check_exp4, echo = FALSE, warn = FALSE, message = FALSE}
+
+if(fit_models == TRUE) {
+    source(here::here("01_analyses/model_fits/022_brm_val_check_sdmatch_e4.R"))
+} else {
+    brm_val_exp4_cons <- readRDS(here::here("01_analyses/fitted_models/022_brm_val_check_sdmatch_e4.rds"))
+}
+
+if(fit_models == TRUE) {
+    source(here::here("01_analyses/model_fits/023_brm_bconf_check_sdmatch_e4.R"))
+} else {
+    brm_bconf_exp4_cons <- readRDS(here::here("01_analyses/fitted_models/023_brm_bconf_check_sdmatch_e4.rds"))
+}
+
+
+rep_man_check_exp4_val_cons <- report_brm_apa(brm_val_exp4_cons, "basket_cat_f1", "<", log_scale = FALSE)
+emm_man_check_exp4_val_cons <- emmeans(brm_val_exp4_cons, specs = "basket_cat_f", type = "response")
+
+rep_man_check_exp4_conf_cons <- report_brm_apa(brm_bconf_exp4_cons, "basket_cat_f1", ">", log_scale = FALSE)
+emm_man_check_exp4_conf_cons <- emmeans(brm_bconf_exp4_cons, specs = "basket_cat_f", type = "response")
+
+if(fit_models == TRUE) {
+    source(here::here("01_analyses/model_fits/024_brm_val_check_ematch_e4.R"))
+} else {
+    brm_val_exp4_ex <- readRDS(here::here("01_analyses/fitted_models/024_brm_val_check_ematch_e4.rds"))
+}
+
+if(fit_models == TRUE) {
+    source(here::here("01_analyses/model_fits/025_brm_bconf_check_ematch_e4.R"))
+} else {
+    brm_bconf_exp4_ex <- readRDS(here::here("01_analyses/fitted_models/025_brm_bconf_check_ematch_e4.rds"))
+}
+
+
+rep_man_check_exp4_val_ex <- report_brm_apa(brm_val_exp4_ex, "basket_cat_f1", "<", log_scale = FALSE)
+emm_man_check_exp4_val_ex <- emmeans(brm_val_exp4_ex, specs = "basket_cat_f", type = "response")
+
+rep_man_check_exp4_conf_ex <- report_brm_apa(brm_bconf_exp4_ex, "basket_cat_f1", ">", log_scale = FALSE)
+emm_man_check_exp4_conf_ex <- emmeans(brm_bconf_exp4_ex, specs = "basket_cat_f", type = "response")
+
+```
+
+The matching procedure employed in Experiment 4 again succeeded in creating the desired ensembles.
+For the ensembles matched on value extremity, there was no credible difference in component value extremity between the high and low within-component consistency conditions (component value extremity in high component consistency condition = `r report_value(summary(emm_man_check_exp4_val_ex)$emm[1], digits = 2)` vs. component value extremity low in component consistency condition = `r report_value(summary(emm_man_check_exp4_val_ex)$emm[2], digits = 2)`), with no credible difference between the two conditions (`r rep_man_check_exp4_val_ex`). 
+Meanwhile, the average within-component consistency was credibly higher in the high within-component consistency condition than in the low within-component consistency condition (average standard deviation within repeated ratings in high component consistency condition = `r report_value(summary(emm_man_check_exp4_conf_ex)$emm[1], digits = 2)` vs. average standard deviation within repeated ratings in low component consistency condition = `r report_value(summary(emm_man_check_exp4_conf_ex)$emm[2], digits = 2)`), with a credible difference between the two conditions (`r rep_man_check_exp4_conf_ex`). 
+
+For the ensembles matched on within-component consistency, there was no credible difference in average within-component consistency between the high and low value-extremity conditions (average within-component consistency in high extremity condition = `r report_value(summary(emm_man_check_exp4_conf_cons)$emm[1], digits = 2)` vs. average within-component consistency in low extremity condition = `r report_value(summary(emm_man_check_exp4_conf_cons)$emm[2], digits = 2)`), with no credible difference between the two conditions (`r rep_man_check_exp4_conf_cons`).
+Meanwhile, the component value extremity was credibly higher in the high value-extremity condition than in the low value-extremity condition (component value extremity in high extremity condition = `r report_value(summary(emm_man_check_exp4_val_cons)$emm[1], digits = 2)` vs. component value extremity in low extremity condition = `r report_value(summary(emm_man_check_exp4_val_cons)$emm[2], digits = 2)`), with a credible difference between the two conditions (`r rep_man_check_exp4_val_cons`).
+
+### Main Analyses
+
+We predicted (pre-registered) that higher within-component consistency would give rise to higher ensemble certainty [@leeEmpiricalTestRole2020] even when value extremity is equalized.
+We also predicted that, assuming that ensemble certainty would mainly be driven by within-component consistency [@quandtConfidenceEvaluationsValuebased2022], the difference in ensemble certainty would be smaller for ensembles matched on within-component consistency (pre-registered) even if evaluation extremity would differ, which would provide evidence for the confounding idea outlined in Figure 1.
+
+```{r SD_matching_results, echo = FALSE}
+
+if(fit_models == TRUE) {
+    source(here::here("01_analyses/model_fits/026_brm5_e4h1_BB.R"))
+} else {
+    brm5_e4h1_BB <- readRDS(here::here("01_analyses/fitted_models/026_brm5_e4h1_BB.rds"))
+}
+
+rep_brm5_e4h1_interaction <- report_brm_apa(brm5_e4h1_BB, pred_name = "basket_cat_f1:basket_matching_var_f1", postprop_direction = ">", hypothesis = FALSE, log_scale = TRUE, print_out = TRUE)
+
+ce_exp4_int <- conditional_effects(brm5_e4h1_BB, "basket_cat_f:basket_matching_var_f")
+ce_exp4_cons_high <- c(ce_exp4_int$`basket_cat_f:basket_matching_var_f`[which(ce_exp4_int$basket_cat_f == "high" & ce_exp4_int$basket_cat_f$basket_matching_var_f == "evaluation_ex"),]$estimate__[1], ce_exp4_int$`basket_cat_f:basket_matching_var_f`[which(ce_exp4_int$basket_cat_f == "high" & ce_exp4_int$basket_cat_f$basket_matching_var_f == "evaluation_ex"),]$lower__[1], ce_exp4_int$`basket_cat_f:basket_matching_var_f`[which(ce_exp4_int$basket_cat_f == "high" & ce_exp4_int$basket_cat_f$basket_matching_var_f == "evaluation_ex"),]$upper__[1])
+
+ce_exp4_cons_low <- c(ce_exp4_int$`basket_cat_f:basket_matching_var_f`[which(ce_exp4_int$basket_cat_f == "low" & ce_exp4_int$basket_cat_f$basket_matching_var_f == "evaluation_ex"),]$estimate__[1], ce_exp4_int$`basket_cat_f:basket_matching_var_f`[which(ce_exp4_int$basket_cat_f == "low" & ce_exp4_int$basket_cat_f$basket_matching_var_f == "evaluation_ex"),]$lower__[1], ce_exp4_int$`basket_cat_f:basket_matching_var_f`[which(ce_exp4_int$basket_cat_f == "low" & ce_exp4_int$basket_cat_f$basket_matching_var_f == "evaluation_ex"),]$upper__[1])
+
+ce_exp4_ex_high <- c(ce_exp4_int$`basket_cat_f:basket_matching_var_f`[which(ce_exp4_int$basket_cat_f == "high" & ce_exp4_int$basket_cat_f$basket_matching_var_f == "rating_sd"),]$estimate__[1], ce_exp4_int$`basket_cat_f:basket_matching_var_f`[which(ce_exp4_int$basket_cat_f == "high" & ce_exp4_int$basket_cat_f$basket_matching_var_f == "rating_sd"),]$lower__[1], ce_exp4_int$`basket_cat_f:basket_matching_var_f`[which(ce_exp4_int$basket_cat_f == "high" & ce_exp4_int$basket_cat_f$basket_matching_var_f == "rating_sd"),]$upper__[1])
+
+ce_exp4_ex_low <- c(ce_exp4_int$`basket_cat_f:basket_matching_var_f`[which(ce_exp4_int$basket_cat_f == "low" & ce_exp4_int$basket_cat_f$basket_matching_var_f == "rating_sd"),]$estimate__[1], ce_exp4_int$`basket_cat_f:basket_matching_var_f`[which(ce_exp4_int$basket_cat_f == "low" & ce_exp4_int$basket_cat_f$basket_matching_var_f == "rating_sd"),]$lower__[1], ce_exp4_int$`basket_cat_f:basket_matching_var_f`[which(ce_exp4_int$basket_cat_f == "low" & ce_exp4_int$basket_cat_f$basket_matching_var_f == "rating_sd"),]$upper__[1])
+
+
+hyp_brm5_e4h1_BB_ex <- hypothesis(brm5_e4h1_BB_ex, "plogis(Intercept - basket_cat_f1) > plogis(Intercept + basket_cat_f1)", alpha = 0.025) # loaded in Experiment 1 file 
+hyp_brm5_e4h1_BB_ex$hypothesis$Post.Prob <- 1 - hyp_brm5_e4h1_BB_ex$hypothesis$Post.Prob
+rep_brm5_e4h1_BB_ex <- report_brm_apa(hyp_brm5_e4h1_BB_ex, pred_name = "basket_cat_f1", postprop_direction = ">", hypothesis = TRUE, log_scale = FALSE, print_out = TRUE)
+
+rep_brm5_e4h1_BB_sd <- report_brm_apa(brm5_e4h1_BB_sd, pred_name = "basket_cat_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = TRUE, print_out = TRUE)
+```
+
+Surprisingly, we found that ensembles matched on value extremity but differing in within-component consistency did not credibly differ in ensemble certainty (`r rep_brm5_e4h1_BB_ex`; high within-component consistency: `r report_value(ce_exp4_cons_high[1], digits = 2)`, low within-component consistency: `r report_value(ce_exp4_cons_low[1], digits = 2)`; see Figure 3C).
+Moreover, and in stark contrast to the prediction and the argument presented in Figure 1, ensembles matched on within-component consistency and differing on evaluation extremity exhibited a credible difference in ensemble certainty (`r rep_brm5_e4h1_BB_sd`; high component value extremity: `r report_value(ce_exp4_ex_high[1], digits = 2)`, low component value extremity: `r report_value(ce_exp4_ex_low[1], digits = 2)`; see Figure 3D). 
+This effect of average component value extremity on ensemble certainty in the within-component consistency matched ensembles was statistically more pronounced than the effect of within-component consistency in the extremity matched ensembles, as indicated by a credible interaction between the matching condition and matching method (`r rep_brm5_e4h1_interaction`).
+
+```{r load sd_ex_difference_models.rds}
+rep_diff_exp4_ex_student_value <- report_brm_apa(brm_diff_exp4_ex_student, "basket_value_diff_s", "<", log_scale = FALSE)
+rep_diff_exp4_ex_student_sd <- report_brm_apa(brm_diff_exp4_ex_student, "basket_value_sd_diff_s", ">", log_scale = FALSE)
+
+hyp_diff_exp4_student_eval_rating_sd <- hypothesis(brm_diff_exp4_ex_student, "-basket_rating_sd_diff_s <0 ", alpha = 0.025)
+hyp_diff_exp4_student_eval_rating_sd$hypothesis$Post.Prob <- 1 - hyp_diff_exp4_student_eval_rating_sd$hypothesis$Post.Prob
+rep_diff_exp4_ex_student_rating_sd <- report_brm_apa(hyp_diff_exp4_student_eval_rating_sd, "basket_rating_sd_diff_s", "<", hypothesis = TRUE)
+
+
+rep_diff_exp4_sd_student_value <- report_brm_apa(brm_diff_exp4_sd_student, "basket_value_diff_s", "<", log_scale = FALSE)
+rep_diff_exp4_sd_student_sd <- report_brm_apa(brm_diff_exp4_sd_student, "basket_value_sd_diff_s", ">", log_scale = FALSE)
+rep_diff_exp4_sd_student_ex <- report_brm_apa(brm_diff_exp4_sd_student, "basket_value_ex_diff_s", "<", log_scale = FALSE)
+
+```
+
+### Exploratory Analyses
+
+As in Experiments 2 and 3, we explored whether the differences in ensemble certainty within matched pairs could be predicted by the differences in component value extremity, value positivity, and between- and within-component consistency.
+We found that differences in ensemble certainty within extremity-matched pairs were predicted by differences in value positivity (`r rep_diff_exp4_ex_student_value`), between-component consistency (`r rep_diff_exp4_ex_student_sd`) but not within-component consistency (`r rep_diff_exp4_ex_student_rating_sd`; see Figure 3E: *Exp 4: VE-Matched*).
+For the ensembles matched on within-component consistency, we found that only value positivity was a credible predictor of ensemble certainty (`r rep_diff_exp4_sd_student_value`), with no effect of between-component consistency (`r rep_diff_exp4_sd_student_sd`) or value extremity (`r rep_diff_exp4_sd_student_ex`; see Figure 3E: *Exp4 WC.CON-Matched*).

@@ -1,0 +1,150 @@
+# Experiment 2
+
+In Experiment 2, we aimed to investigate whether there would be a difference in ensemble certainty between ensembles with high and low component certainty when experimentally equalizing value positivity.
+
+## Method
+
+### Participants
+
+Sample size was determined through power simulation (see supplemental materials for details).
+Excluding participants based on preregistered criteria, and replacing the excluded participants, we arrived at a sample size of 131 participants (48 female, 82  male, 1 non-binary (free-response box); M_{age} = 26.22, SD_{age} = 7.95) to achieve 80% power.
+We recruited a sample of Dutch participants on Prolific (www.prolific.co). 
+
+### Materials
+
+The stimulus material for Experiment 2 was identical to Experiment 1. 
+
+### Procedures
+
+#### Component Evaluation Task
+
+The procedure for the component evaluation task was identical to Experiment 1.
+
+#### Ensemble creation
+
+We created food product ensembles each of which contained three items.
+A clustering algorithm produced ensembles with matching value positivity, while exhibiting maximal within-cluster differences in component certainty.
+The algorithm ensured that the value positivity of the items within each ensemble was matched, while the component certainty was maximally different between the two ensembles.
+A detailed description of the algorithm is provided in the supplemental materials and a schematic depiction is presented in Figure 2. 
+Table 1 provides an overview of which aspects were matched and varied in each experiment.
+In short, the algorithm created several clusters of items based on component evaluations to ensure minimal differences between the value positivity within each cluster.
+Then, 3 high-certainty and 3 low-certainty items from each cluster were selected to create a positivity-matched pair of 2 ensembles, one with high component certainty and one with low component certainty.
+
+#### Ensemble Evaluation Task
+
+The procedure of evaluating the ensembles was identical to Experiment 1.
+
+### Data Analysis
+
+For the main data analysis, we used a Beta-Binomial Bayesian mixed-effects model with ensemble certainty as the dependent variable and component certainty (factorial: low. vs. high), value positivity (standardized), between-component consistency (standardized) and component value-extremity (standardized) as the predictors (see model specification in SOM).
+Moreover, to allow for more nuanced conclusions, a region of practical equivalence [ROPE; @kruschkeBayesianNewStatistics2018] was pre-registered and defined as [-0.0125, 0.0125] (see supplemental materials for details).
+Specifically, as our goal was to identify _major_ determinants of ensemble certainty, we wanted to ensure that any such claim would only be made when the effect-size was large enough to be considered meaningful in this context.
+While the definition of "meaningful" remains arbitrary, the size of the ROPE relates to the size of effects of evaluation variability on evaluation certainty found in previous experiments, fitting similar models, when directly manipulating the consistency of value-relevant evidence on evaluation certainty for artificial fractal items [@quandtConfidenceEvaluationsValuebased2022].
+
+If the 95% credible interval of an effect lies entirely inside the ROPE and the 95% credible interval includes 0, we would consider the effect precisely estimated and conclude that it did not, in an important way, impact ensemble certainty.
+If the 95% credible interval (partly) lies within the ROPE, but does not include 0, we consider the effect credible but too small to be a major contributor to ensemble certainty.
+If the 95% credible interval falls outside of the ROPE, we consider the effect to be a major contributor to ensemble certainty, comparable with experimental findings where only a single manipulated factor was influencing evaluation certainty [@quandtConfidenceEvaluationsValuebased2022].
+
+
+## Results
+
+### Manipulation Checks: Resulting Matched Ensembles
+
+
+```{r man_check_exp2, echo = FALSE, warn = FALSE, message = FALSE}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/013_brm_val_check_e2.R"))
+} else {
+    brm_val_exp2 <- readRDS(here::here("01_analyses/fitted_models/013_brm_val_check_e2.rds"))
+}
+
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/014_brm_bconf_check_e2.R"))
+} else {
+    brm_bconf_exp2 <- readRDS(here::here("01_analyses/fitted_models/014_brm_bconf_check_e2.rds"))
+}
+
+
+rep_man_check_exp2_val <- report_brm_apa(brm_val_exp2, "basket_cat_f1", "<", log_scale = FALSE)
+emm_man_check_exp2_val <- emmeans(brm_val_exp2, specs = "basket_cat_f", type = "response")
+
+rep_man_check_exp2_conf <- report_brm_apa(brm_bconf_exp2, "basket_cat_f1", "<", log_scale = FALSE)
+emm_man_check_exp2_conf <- emmeans(brm_bconf_exp2, specs = "basket_cat_f", type = "response")
+
+
+
+```
+
+First, we wanted to check whether the matched ensembles would have the desired properties, i.e., being close to identical on average component value positivity but differing in average component certainty.
+For this, we fitted a Gaussian family Bayesian mixed-effects model predicting the average component value positivity from the ensemble condition (low vs. high component certainty).
+We found that the matching algorithm succeeded in creating ensemble pairs in the two conditions that were indeed highly similar on average value positivity (average component value positivity in high component certainty condition = `r report_value(summary(emm_man_check_exp2_val)$emm[1], digits = 2)` vs. average component value positivity in low component certainty condition = `r report_value(summary(emm_man_check_exp2_val)$emm[2], digits = 2)`), with no credible difference between the two conditions (`r rep_man_check_exp2_val`; see also the high overlap of posterior distributions in Figure 2 in SOM that strongly suggests no difference).
+
+Moreover, the matching algorithm successfully created ensemble pairs that differed in average component certainty (average component certainty in high component certainty condition = `r report_value(summary(emm_man_check_exp2_conf)$emm[1], digits = 2)` vs. average component certainty in low component certainty condition = `r report_value(summary(emm_man_check_exp2_conf)$emm[2], digits = 2)`), with a credible difference between the two conditions (`r rep_man_check_exp2_conf`; see SOM for visualization).
+
+### Main Analysis: Matching Value Positivity
+
+```{r value_matching_results_exp2, echo = FALSE, warn = FALSE, message = FALSE}
+# if(fit_models == TRUE) {
+#   source(here::here("01_analyses/model_fits/003_brm5_e2h1_BB.R"))
+# } else {
+  # brm5_e2h1_BB <- readRDS(here::here("01_analyses/fitted_models/003_brm5_e2h1_bb.rds"))
+# } # This is loaded in Experiment 1 and does not need to be fitted or loaded again.. if you want to run independently, uncomment this
+
+
+rep_brm5_e2h1_conf <- report_brm_apa(brm5_e2h1_BB, pred_name = "basket_cat_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = TRUE, print_out = TRUE)
+rep_brm5_e2h1_conf_equiv <- report_brm_apa(brm5_e2h1_BB, pred_name = "basket_cat_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = TRUE, print_out = TRUE, offset = .025)
+
+rep_brm5_e2h1_ex <- report_brm_apa(brm5_e2h1_BB, pred_name = "basket_value_ex_s", postprop_direction = "<", hypothesis = FALSE, log_scale = TRUE, print_out = TRUE)
+rep_brm5_e2h1_sd <- report_brm_apa(brm5_e2h1_BB, pred_name = "item_value_sd_s", postprop_direction = ">", hypothesis = FALSE, log_scale = TRUE, print_out = TRUE)
+rep_brm5_e2h1_value <- report_brm_apa(brm5_e2h1_BB, pred_name = "basket_value_s", postprop_direction = "<", hypothesis = FALSE, log_scale = TRUE, print_out = TRUE)
+
+
+ce_brm5_e2h1_conf <- conditional_effects(brm5_e2h1_BB, "basket_cat_f")
+ce_brm5_e2h1_conf_high <- ce_brm5_e2h1_conf$basket_cat_f[which(ce_brm5_e2h1_conf$basket_cat_f == "high"),]$estimate__[1]
+ce_brm5_e2h1_conf_low <- ce_brm5_e2h1_conf$basket_cat_f[which(ce_brm5_e2h1_conf$basket_cat_f == "low"),]$estimate__[1]
+```
+
+Next, we tested our prediction (pre-registered) that higher component certainty would result in higher ensemble certainty after experimentally equalizing value positivity of ensembles.
+We found a credible difference in ensemble certainty between the high and low component certainty ensembles (`r rep_brm5_e2h1_conf`; high component certainty: `r report_value(ce_brm5_e2h1_conf_high[1], digits = 2)`, low component certainty: `r report_value(ce_brm5_e2h1_conf_low[1], digits = 2)`) but this difference was not credibly larger than the defined ROPE[^2] (`r rep_brm5_e2h1_conf_equiv`; see Figure 3B).
+Moreover, we found credible estimates for between-component consistency (`r rep_brm5_e2h1_sd`; estimate negative as operationalized as SD between component evaluations, i.e. negative consistency), component value positivity (`r rep_brm5_e2h1_value`), and component value extremity (`r rep_brm5_e2h1_ex`).
+Importantly, the estimates of between-component consistency, value extremity, and value positivity represent the effect of these factors _across_ ensemble pairs and hence cannot be interpreted in the same way as the experimentally varied factor of component certainty. 
+In other words, while these estimates are credible, they can only be interpreted as a correlation between the respective factor and ensemble certainty, across the range of ensemble values.
+
+
+### Exploratory Analyses
+
+```{r load eval_difference_model_exp2.rds}
+# if(fit_models == TRUE) {
+#   source(here::here("01_analyses/model_fits/010_brm_diff_exp2_student.R"))
+# } else {
+#   brm_diff_exp2_student <- readRDS(here::here("01_analyses/fitted_models/010_brm_diff_exp2_student.rds"))
+# } # This is loaded in Experiment 1 and does not need to be fitted or loaded again.. if you want to run independently, uncomment this
+
+rep_diff_exp2_student_conf <- report_brm_apa(brm_diff_exp2_student, "basket_conf_diff_s", "<", log_scale = FALSE)
+rep_diff_exp2_student_value_ex <- report_brm_apa(brm_diff_exp2_student, "basket_value_ex_diff_s", "<", log_scale = FALSE)
+rep_diff_exp2_student_sd <- report_brm_apa(brm_diff_exp2_student, "basket_value_sd_diff_s", ">", log_scale = FALSE)
+```
+
+While the effects across ensemble pairs are not surprising and in line with previous literature [@leeValueCertaintyChoice2023; @polaniaEfficientCodingSubjective2019], the question remains whether these factors similarly explain the differences in ensemble certainty within the value positivity matched pairs of ensembles.
+Hence, we conducted additional exploratory analyses to investigate the impact of between-component consistency and component value extremity within matched pairs of ensembles by calculating difference scores for each predictor within pairs of matched ensembles. 
+That is, for each predictor, we calculated the difference score between the high and low component certainty ensemble in each pair (e.g., the difference in value extremity between a given high and low component-certainty ensemble in a matched pair) and predicted the difference in ensemble certainty from these difference scores.
+This has the advantage that these predictors directly allow us to infer their impact on ensemble certainty within matched pairs instead of representing the correlation between the respective factor and ensemble certainty across the range of ensemble values.
+
+We fitted a Student-T family Bayesian mixed-effects model [the Student-T model is considered an outlier-robust alternative to the standard Gaussian family model; @burknerBrmsPackageBayesian2017a] predicting the difference in ensemble certainty from the difference in component certainty (i.e., using a standardized numerical predictor instead of the factorial indicator), ensemble value extremity (standardized), and between-component consistency (standardized).
+We found that the difference in component certainty was the only factor that predicted ensemble certainty (`r rep_diff_exp2_student_conf`,), with no effect of value extremity (`r rep_diff_exp2_student_value_ex`), and between-component consistency (`r rep_diff_exp2_student_sd`).
+Hence, the impact of component certainty on ensemble certainty was neither attributable to value extremity nor between-component consistency (see Figure 3E: *Exp2 VP-Matched*).
+
+
+### Discussion
+
+Experiment 2 demonstrated that value certainty in components significantly influenced ensemble certainty, independent of value positivity, which was equalized within the matched ensemble pairs. 
+Exploratory analyses revealed that this component certainty effect is independent of value extremity and between-component consistency, both of which did not predict ensemble certainty in the value-positivity matched ensembles.
+Especially the absence of an effect of value extremity on ensemble certainty is surprising, as previous research has shown that value extremity is a major contributor to ensemble certainty [@leeValueCertaintyChoice2023; @polaniaEfficientCodingSubjective2019].
+One reason for this might be that the current set of ensembles of food items contains primarily positive-value ensembles (median value = `r median(brm_val_exp2$data$basket_value)`), with primarily very high certainty ratings (median certainty = `r median(brm5_e2h1_BB$data$confidence)`). 
+While differences in certainty within matched ensemble pairs (see _Manipulation Check_ section) were still pronounced, this could still have deflated potential effects.
+
+Hence, in Experiment 3 we aimed to decrease the average ensemble evaluation and ensemble certainty by using a different set of stimuli (retail goods) and a different evaluation task [Becker-DeGroot-Marschak method; @beckerMeasuringUtilitySingleresponse1964].
+Specifically, we expected that people would be less opinionated about prices they would be willing to pay for a diverse set of retail goods, compared to their liking of common foods, and that this would lead to a larger variance in ensemble evaluation (i.e., willingness to pay) and ensemble certainty. 
+Moreover, given the noteworthy absence of an effect of value extremity on ensemble certainty in Experiment 2, we also aimed to investigate this more closely by directly matching ensembles on value extremity.

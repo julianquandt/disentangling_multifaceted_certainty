@@ -1,0 +1,278 @@
+# Experiment 3
+
+Experiment 3 is partially a replication of Experiment 2, but with a different set of stimuli (retail goods instead of food items) and a different method of evaluation (Becker-DeGroot-Marschak auction instead of evaluations).
+Moreover, we matched half the ensembles on component value positivity (as in Experiment 2) and the other half on component value extremity.
+
+## Method
+
+### Participants
+
+Sample size was determined using power simulation based on the results of Experiment 2 (see SOM for details).
+This resulted in a suggested sample size of 90 participants (38 female, 48 male, 4 non-binary (free-response box); M_{age} = 29.81, SD_{age} = 8.52) to arrive at 80% power, which we recruited from a Dutch sample on Prolific (www.prolific.co).
+
+### Materials and Procedures
+
+Stimuli consisted of 60 retail products that were taken from a popular online retailer in the Netherlands. 
+Examples of items are a bracelet, a cocktail set, a drinking bottle, or a photo album.
+All products were selected to cost up to €25.
+
+#### Component Evaluation Task
+
+The structure of the component evaluation task was mostly identical to Experiment 2. 
+However, instead of indicating their liking for the retail goods, participants were asked to place bids on each good according to the rules of the Becker-DeGroot-Marschak auction method [@beckerMeasuringUtilitySingleresponse1964].
+These bids were hypothetical and non-incentivized.
+
+#### Ensemble creation
+
+The ensemble creation procedure was identical to Experiment 2, with the exception that only half the ensembles were matched on value positivity, while the other half was matched on value extremity, meaning that products (components) with extremely low and extremely high value could be included in the same ensemble. 
+
+#### Ensemble Evaluation Task
+
+In the Ensemble Evaluation Task, participants placed bids on the ensembles, similar to the component evaluation task, with the potential bids ranging from €0 to €75, to reflect that in purchasing, the sum of the prices determines the ensemble price, rather than the average. 
+
+### Data Analysis
+
+The data analysis procedure was identical to Experiment 2. 
+This is, we predicted ensemble certainty from the difference in component certainty, component value positivity, component value extremity, and between-component consistency (For details, see model specification in the SOM).
+
+
+## Results
+
+### Manipulation Checks: Resulting Matched Ensembles
+
+```{r man_check_exp3, echo = FALSE, warn = FALSE, message = FALSE}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/015_brm_val_check_vmatch_e3.R"))
+} else {
+  brm_val_exp3_eval <- readRDS(here::here("01_analyses/fitted_models/015_brm_val_check_vmatch_e3.rds"))
+}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/016_brm_bconf_check_vmatch_e3.R"))
+} else {
+  brm_bconf_exp3_eval <- readRDS(here::here("01_analyses/fitted_models/016_brm_bconf_check_vmatch_e3.rds"))
+}
+
+
+rep_man_check_exp3_val_eval <- report_brm_apa(brm_val_exp3_eval, "basket_cat_f1", "<", log_scale = FALSE)
+emm_man_check_exp3_val_eval <- emmeans(brm_val_exp3_eval, specs = "basket_cat_f", type = "response")
+
+rep_man_check_exp3_conf_eval <- report_brm_apa(brm_bconf_exp3_eval, "basket_cat_f1", "<", log_scale = FALSE)
+emm_man_check_exp3_conf_eval <- emmeans(brm_bconf_exp3_eval, specs = "basket_cat_f", type = "response")
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/017_brm_val_check_ematch_e3.R"))
+} else {
+  brm_val_exp3_ex <- readRDS(here::here("01_analyses/fitted_models/017_brm_val_check_ematch_e3.rds"))
+}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/018_brm_bconf_check_ematch_e3.R"))
+} else {
+  brm_bconf_exp3_ex <- readRDS(here::here("01_analyses/fitted_models/018_brm_bconf_check_ematch_e3.rds"))
+}
+
+
+rep_man_check_exp3_val_ex <- report_brm_apa(brm_val_exp3_ex, "basket_cat_f1", "<", log_scale = FALSE)
+emm_man_check_exp3_val_ex <- emmeans(brm_val_exp3_ex, specs = "basket_cat_f", type = "response")
+
+rep_man_check_exp3_conf_ex <- report_brm_apa(brm_bconf_exp3_ex, "basket_cat_f1", "<", log_scale = FALSE)
+emm_man_check_exp3_conf_ex <- emmeans(brm_bconf_exp3_ex, specs = "basket_cat_f", type = "response")
+
+```
+
+Again, we fitted a Gaussian family Bayesian mixed-effects model predicting the component value positivity from the ensemble condition (low vs. high component certainty) to check whether the matched positivity-matched ensembles would have the desired properties, i.e., being close to identical on component value positivity but differing in average component certainty.
+We found that the matching algorithm succeeded in creating ensembles in the two conditions that were indeed highly similar on average value positivity (sum of value positivity (price) in high component certainty condition = `r report_value(summary(emm_man_check_exp3_val_eval)$emm[1], digits = 2)` (out of 75) vs. sum of component value positivity low in component certainty condition = `r report_value(summary(emm_man_check_exp3_val_eval)$emm[2], digits = 2)`), with no credible difference between the two conditions (`r rep_man_check_exp3_val_eval`).
+As intended, these matched ensembles differed in average component certainty (average component certainty in high component certainty condition = `r report_value(summary(emm_man_check_exp3_conf_eval)$emm[1], digits = 2)` vs. average component certainty in low component certainty condition = `r report_value(summary(emm_man_check_exp3_conf_eval)$emm[2], digits = 2)`), with a credible difference between the two conditions (`r rep_man_check_exp3_conf_eval`; see SOM for visualization). 
+
+Similarly, for the extremity-matched ensembles we found that matched ensembles were highly similar in average component value extremity (sum of component value extremity in high component certainty condition = `r report_value(summary(emm_man_check_exp3_val_ex)$emm[1], digits = 2)` vs. sum of component value positivity low in component certainty condition = `r report_value(summary(emm_man_check_exp3_val_ex)$emm[2], digits = 2)`), with no credible difference between the two conditions (`r rep_man_check_exp3_val_ex`).
+As intended, these matched ensembles differed in average component certainty (average component certainty in high component certainty condition = `r report_value(summary(emm_man_check_exp3_conf_ex)$emm[1], digits = 2)` vs. average component certainty in low component certainty condition = `r report_value(summary(emm_man_check_exp3_conf_ex)$emm[2], digits = 2)`), with a credible difference between the two conditions (`r rep_man_check_exp3_conf_ex`; see SOM for visualization). 
+
+Together, this shows that the matching algorithm worked as intended for both matching methods, and that the overall value positivity and value extremity decreased compared to Experiment 2.
+
+```{r load_brm5_exp3, warning = FALSE, output = FALSE, message = FALSE, echo = FALSE}
+# if(fit_models == TRUE) {
+#   source(here::here("01_analyses/model_fits/004_brm5_e3h1_BB_eval.R"))
+# } else {
+#   brm5_e3h1_BB_eval <- readRDS(here::here("01_analyses/fitted_models/004_brm5_e3h1_BB_eval.rds"))
+# } # This is loaded in Experiment 1 and does not need to be fitted or loaded again.. if you want to run independently, uncomment this
+
+# if(fit_models == TRUE) {
+#   source(here::here("01_analyses/model_fits/005_brm5_e3h1_BB_ex.R"))
+# } else {
+  # brm5_e3h1_BB_ex <- readRDS(here::here("01_analyses/fitted_models/005_brm5_e3h1_BB_ex.rds"))
+# } # This is loaded in Experiment 1 and does not need to be fitted or loaded again.. if you want to run independently, uncomment this
+
+rep_brm5_e3h1_conf_eval <- report_brm_apa(brm5_e3h1_BB_eval, pred_name = "basket_cat_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = TRUE, print_out = TRUE)
+rep_brm5_e3h1_conf_equiv_eval <- report_brm_apa(brm5_e3h1_BB_eval, pred_name = "basket_cat_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = TRUE, print_out = TRUE, offset = .025)
+
+rep_brm5_e3h1_ex_eval <- report_brm_apa(brm5_e3h1_BB_eval, pred_name = "basket_value_ex_s", postprop_direction = "<", hypothesis = FALSE, log_scale = TRUE, print_out = TRUE)
+rep_brm5_e3h1_sd_eval <- report_brm_apa(brm5_e3h1_BB_eval, pred_name = "value_sd_s", postprop_direction = ">", hypothesis = FALSE, log_scale = TRUE, print_out = TRUE)
+rep_brm5_e3h1_value_eval <- report_brm_apa(brm5_e3h1_BB_eval, pred_name = "basket_value_s", postprop_direction = "<", hypothesis = FALSE, log_scale = TRUE, print_out = TRUE)
+
+
+ce_brm5_e3h1_conf_eval <- conditional_effects(brm5_e3h1_BB_eval, "basket_cat_f")
+ce_brm5_e3h1_conf_high_eval <- ce_brm5_e3h1_conf_eval$basket_cat_f[which(ce_brm5_e3h1_conf_eval$basket_cat_f == "high"),]$estimate__[1]
+ce_brm5_e3h1_conf_low_eval <- ce_brm5_e3h1_conf_eval$basket_cat_f[which(ce_brm5_e3h1_conf_eval$basket_cat_f == "low"),]$estimate__[1]
+
+
+rep_brm5_e3h1_conf_ex <- report_brm_apa(brm5_e3h1_BB_ex, pred_name = "basket_cat_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = TRUE, print_out = TRUE)
+rep_brm5_e3h1_conf_equiv_ex <- report_brm_apa(brm5_e3h1_BB_ex, pred_name = "basket_cat_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = TRUE, print_out = TRUE, offset = .025)
+
+rep_brm5_e3h1_ex_ex <- report_brm_apa(brm5_e3h1_BB_ex, pred_name = "basket_value_ex_s", postprop_direction = "<", hypothesis = FALSE, log_scale = TRUE, print_out = TRUE)
+rep_brm5_e3h1_sd_ex <- report_brm_apa(brm5_e3h1_BB_ex, pred_name = "value_sd_s", postprop_direction = ">", hypothesis = FALSE, log_scale = TRUE, print_out = TRUE)
+rep_brm5_e3h1_value_ex <- report_brm_apa(brm5_e3h1_BB_ex, pred_name = "basket_value_s", postprop_direction = "<", hypothesis = FALSE, log_scale = TRUE, print_out = TRUE)
+
+
+ce_brm5_e3h1_conf_ex <- conditional_effects(brm5_e3h1_BB_ex, "basket_cat_f")
+ce_brm5_e3h1_conf_high_ex <- ce_brm5_e3h1_conf_ex$basket_cat_f[which(ce_brm5_e3h1_conf_ex$basket_cat_f == "high"),]$estimate__[1]
+ce_brm5_e3h1_conf_low_ex <- ce_brm5_e3h1_conf_ex$basket_cat_f[which(ce_brm5_e3h1_conf_ex$basket_cat_f == "low"),]$estimate__[1]
+```
+
+### Main analyses
+
+#### Positivity-Matched Ensembles
+
+Similar to Experiment 2, we predicted (pre-registered) that higher component certainty would result in higher ensemble certainty after experimentally equalizing value positivity of ensembles.
+As in Experiment 2, we found a credible difference in ensemble certainty between the high and low component certainty ensembles (`r rep_brm5_e3h1_conf_eval`; high component certainty: `r report_value(ce_brm5_e3h1_conf_high_eval[1], digits = 2)`, low component certainty: `r report_value(ce_brm5_e3h1_conf_low_eval[1], digits = 2)`). 
+Again, this difference was not credibly larger than the defined ROPE (`r rep_brm5_e3h1_conf_equiv_eval`; see Figure 3B).
+Replicating findings in Experiment 2, component value positivity (`r rep_brm5_e3h1_value_eval`) and component value extremity (`r rep_brm5_e3h1_ex_eval`) predicted ensemble evaluation certainty across matched ensemble pairs.
+Unlike in Experiment 2, there was no credible effect of between-component consistency on ensemble evaluation certainty (`r rep_brm5_e3h1_sd_eval`).
+
+
+#### Extremity-Matched Ensembles
+
+For the ensembles matched on component value extremity, we similarly found a credible difference in ensemble certainty (pre-registered) between the high and low component certainty ensembles (`r rep_brm5_e3h1_conf_ex`; high component certainty: `r report_value(ce_brm5_e3h1_conf_high_ex[1], digits = 2)`, low component certainty: `r report_value(ce_brm5_e3h1_conf_low_ex[1], digits = 2)`), this time larger than the defined ROPE (`r rep_brm5_e3h1_conf_equiv_ex`; see Figure 3C).
+This suggests that even when equalizing component value extremity, component certainty still strongly impacted ensemble certainty.
+Additionally, across extremity-matched pairs, we found that component value positivity (`r rep_brm5_e3h1_value_ex`), component value extremity (`r rep_brm5_e3h1_ex_ex`), and between-component consistency (`r rep_brm5_e3h1_sd_ex`) predicted ensemble evaluation certainty across matched ensemble pairs.
+
+### Exploratory Analyses
+
+#### Comparing predictors of ensemble certainty within matched pairs
+
+```{r load eval_difference_model_exp3, warning = FALSE, output = FALSE, message = FALSE, echo = FALSE}
+# if(fit_models == TRUE) {
+#   source(here::here("01_analyses/model_fits/011_brm_diff_exp3_eval_student.R"))
+# } else {
+#   brm_diff_exp3_eval_student <- readRDS(here::here("01_analyses/fitted_models/011_brm_diff_exp3_eval_student.rds"))
+# } # This is loaded in Experiment 1 and does not need to be fitted or loaded again.. if you want to run independently, uncomment this
+
+rep_diff_exp3_student_conf_eval <- report_brm_apa(brm_diff_exp3_eval_student, "basket_conf_diff_s", "<", log_scale = FALSE)
+rep_diff_exp3_student_value_ex_eval <- report_brm_apa(brm_diff_exp3_eval_student, "basket_value_ex_diff_s", "<", log_scale = FALSE)
+rep_diff_exp3_student_sd_eval <- report_brm_apa(brm_diff_exp3_eval_student, "basket_value_sd_diff_s", ">", log_scale = FALSE)
+
+# if(fit_models == TRUE) {
+#   source(here::here("01_analyses/model_fits/012_brm_diff_exp3_ex_student.R"))
+# } else {
+#   brm_diff_exp3_ex_student <- readRDS(here::here("01_analyses/fitted_models/012_brm_diff_exp3_ex_student.rds"))
+# } # This is loaded in Experiment 1 and does not need to be fitted or loaded again.. if you want to run independently, uncomment this
+
+rep_diff_exp3_student_conf_ex <- report_brm_apa(brm_diff_exp3_ex_student, "basket_conf_diff_s", "<", log_scale = FALSE)
+rep_diff_exp3_student_value_ex <- report_brm_apa(brm_diff_exp3_ex_student, "basket_value_diff_s", "<", log_scale = FALSE)
+rep_diff_exp3_student_sd_ex <- report_brm_apa(brm_diff_exp3_ex_student, "basket_value_sd_diff_s", ">", log_scale = FALSE)
+```
+
+Again, we explored whether the difference in ensemble certainty _within_ matched pairs could be predicted by the difference in component certainty, value extremity and between-component consistency.
+Similar to Experiment 2, for the positivity-matched ensembles, we found that the difference in component certainty was the only factor that predicted ensemble certainty (`r rep_diff_exp3_student_conf_eval`), with no effect of value extremity (`r rep_diff_exp3_student_value_ex_eval`), and between-component consistency (`r rep_diff_exp3_student_sd_eval`; see Figure 3E: *Exp3: VP-Matched*).
+
+For the extremity-matched ensembles, we found similar results, with component certainty being the only credible predictor of ensemble certainty within matched pairs, (`r rep_diff_exp3_student_conf_ex`), while value positivity (`r rep_diff_exp3_student_value_ex`) and between-component consistency (`r rep_diff_exp3_student_sd_ex`) did not credibly predict ensemble certainty (see Figure 3E: *Exp3: VE-Matched*).
+
+#### Rating variability and ensemble certainty
+
+```{r explore_component_diff_vs_ensemble_diff, warning = FALSE, output = FALSE, message = FALSE, echo = FALSE}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/019_brm_vdiff_hln_exp2_full.R"))
+} else {
+  brm_vdiff_exp2 <- readRDS(here::here("01_analyses/fitted_models/019_brm_vdiff_hln_exp2_full.rds"))
+}
+
+
+
+rep_brm_vdiff_exp2 <- report_brm_apa(brm_vdiff_exp2, "basket_cat_f1", ">", log_scale = FALSE, hypothesis = FALSE, print_out = TRUE)
+
+ce_brm_vdiff_exp2 <- conditional_effects(brm_vdiff_exp2, "basket_cat_f", dpar = "hu")
+rep_ce_vdiff_high_exp2 <- c(ce_brm_vdiff_exp2$basket_cat_f[which(ce_brm_vdiff_exp2$basket_cat_f == "high"),]$estimate__[1], 
+  ce_brm_vdiff_exp2$basket_cat_f[which(ce_brm_vdiff_exp2$basket_cat_f == "high"),]$lower__[1], 
+  ce_brm_vdiff_exp2$basket_cat_f[which(ce_brm_vdiff_exp2$basket_cat_f == "high"),]$upper__[1])*100
+
+rep_ce_vdiff_low_exp2 <- c(ce_brm_vdiff_exp2$basket_cat_f[which(ce_brm_vdiff_exp2$basket_cat_f == "low"),]$estimate__[1], 
+  ce_brm_vdiff_exp2$basket_cat_f[which(ce_brm_vdiff_exp2$basket_cat_f == "low"),]$lower__[1], 
+  ce_brm_vdiff_exp2$basket_cat_f[which(ce_brm_vdiff_exp2$basket_cat_f == "low"),]$upper__[1])*100
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/020_brm_vdiff_hln_exp3_full.R"))
+} else {
+  brm_vdiff_exp3 <- readRDS(here::here("01_analyses/fitted_models/020_brm_vdiff_hln_exp3_full.rds"))
+}
+
+
+rep_brm_vdiff_exp3 <- report_brm_apa(brm_vdiff_exp3, "basket_cat_f1", ">", log_scale = FALSE, hypothesis = FALSE, print_out = TRUE)
+
+ce_brm_vdiff_exp3 <- conditional_effects(brm_vdiff_exp3, "basket_cat_f", dpar = "hu")
+rep_ce_vdiff_high_exp3 <- c(ce_brm_vdiff_exp3$basket_cat_f[which(ce_brm_vdiff_exp3$basket_cat_f == "high"),]$estimate__[1], 
+  ce_brm_vdiff_exp3$basket_cat_f[which(ce_brm_vdiff_exp3$basket_cat_f == "high"),]$lower__[1], 
+  ce_brm_vdiff_exp3$basket_cat_f[which(ce_brm_vdiff_exp3$basket_cat_f == "high"),]$upper__[1])*100
+
+rep_ce_vdiff_low_exp3 <- c(ce_brm_vdiff_exp3$basket_cat_f[which(ce_brm_vdiff_exp3$basket_cat_f == "low"),]$estimate__[1], 
+  ce_brm_vdiff_exp3$basket_cat_f[which(ce_brm_vdiff_exp3$basket_cat_f == "low"),]$lower__[1], 
+  ce_brm_vdiff_exp3$basket_cat_f[which(ce_brm_vdiff_exp3$basket_cat_f == "low"),]$upper__[1])*100
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/021_brm_vdiff_full_hln.R"))
+} else {
+  brm_vdiff_comb <- readRDS(here::here("01_analyses/fitted_models/021_brm_vdiff_full_hln.rds"))
+}
+
+
+rep_brm_vdiff_comb <- report_brm_apa(brm_vdiff_comb, "basket_cat_f1", ">", log_scale = FALSE, hypothesis = FALSE, print_out = TRUE)
+
+ce_brm_vdiff_comb <- conditional_effects(brm_vdiff_comb, "basket_cat_f", dpar = "hu")
+rep_ce_vdiff_high_comb <- c(ce_brm_vdiff_comb$basket_cat_f[which(ce_brm_vdiff_comb$basket_cat_f == "high"),]$estimate__[1], 
+  ce_brm_vdiff_comb$basket_cat_f[which(ce_brm_vdiff_comb$basket_cat_f == "high"),]$lower__[1], 
+  ce_brm_vdiff_comb$basket_cat_f[which(ce_brm_vdiff_comb$basket_cat_f == "high"),]$upper__[1])*100
+
+rep_ce_vdiff_low_comb <- c(ce_brm_vdiff_comb$basket_cat_f[which(ce_brm_vdiff_comb$basket_cat_f == "low"),]$estimate__[1], 
+  ce_brm_vdiff_comb$basket_cat_f[which(ce_brm_vdiff_comb$basket_cat_f == "low"),]$lower__[1], 
+  ce_brm_vdiff_comb$basket_cat_f[which(ce_brm_vdiff_comb$basket_cat_f == "low"),]$upper__[1])*100
+```
+
+According to our theoretical outline in the introduction, and based on previous research [@quandtConfidenceEvaluationsValuebased2022], we expected component certainty to tap into the consistency of value-relevant evidence that is sampled during evaluations of those items. 
+One possible implication of this could be that the more consistent the evidence sampled during the component evaluations, the more similar the evidence sampled during the ensemble evaluation.
+Hence, we predicted that the difference between the average component evaluations and the respective ensemble evaluations would be smaller for high component certainty ensembles compared to low component certainty ensembles.
+
+To account for zero differences between component evaluations and ensemble evaluations, we fitted a hurdle-lognormal model, that estimates the chance of a difference being exactly zero per condition separately from the chance of observing difference scores larger than zero in each condition.
+For severely right-skewed data, this avoids the problem of having to add a constant to difference scores of zero for log transformation. 
+We performed this analysis on the combined data of Experiment 2 and 3, which was preregistered after data collection, and after already being in close contact with the data, but before exploring or conducting this particular analysis or computing the required scores.
+
+In the combined data, we found that there were credibly more average component evaluation vs. ensemble evaluation deviations of exactly zero in the high component certainty ensembles (Estimate of the percentage of deviations that are exactly zero = `r report_value(rep_ce_vdiff_high_comb[1], digits = 2)`, 95%CI = [`r report_value(rep_ce_vdiff_high_comb[2], digits = 2)`, `r report_value(rep_ce_vdiff_high_comb[3], digits = 2)`]) compared to the low component certainty ensembles (Estimate = `r report_value(rep_ce_vdiff_low_comb[1], digits = 2)`, 95%CI = [`r report_value(rep_ce_vdiff_low_comb[2], digits = 2)`, `r report_value(rep_ce_vdiff_low_comb[3], digits = 2)`]).
+For deviations of component evaluations and ensemble evaluations that were larger than zero, we found no credible difference between the high and low component certainty ensembles in terms of average component evaluation vs. average ensemble evaluation (`r rep_brm_vdiff_comb`).
+Initially, this might suggest that high component certainty makes it more likely for ensemble evaluations to be exactly like the underlying average component evaluation.
+However, a credible interaction (`r report_brm_apa(brm_vdiff_comb, "hu_basket_cat_f1:experiment1", "<", log_scale = TRUE)`) between the chance of observing a zero deviation between conditions and the Experiment identifier term in the model, suggested that this difference might be more pronounced in Experiment 2 compared to Experiment 3.
+
+To follow up on this, we explored the data separately for Experiment 2 and Experiment 3.
+For Experiment 2, we found that there were credibly more deviations of exactly 0 between component and ensemble evaluations in the high component certainty ensembles (Estimate = `r report_value(rep_ce_vdiff_high_exp2[1], digits = 2)`, 95%CI = [`r report_value(rep_ce_vdiff_high_exp2[2], digits = 2)`, `r report_value(rep_ce_vdiff_high_exp2[3], digits = 2)`]) compared to the low component certainty ensembles (Estimate = `r report_value(rep_ce_vdiff_low_exp2[1], digits = 2)`, 95%CI = [`r report_value(rep_ce_vdiff_low_exp2[2], digits = 2)`, `r report_value(rep_ce_vdiff_low_exp2[3], digits = 2)`]).
+For deviations that were larger than zero, we found no credible difference between the high and low component certainty ensembles in terms of average component evaluation vs. average ensemble evaluation (`r rep_brm_vdiff_exp2`).
+
+For Experiment 3 (using both, the positivity-matched and extremity-matched ensembles in the analysis), we found no difference in the chance of having a deviation of exactly zero between the high and low component certainty ensembles (Estimate of the percentage of deviations that are exactly zero = `r report_value(rep_ce_vdiff_high_exp3[1], digits = 2)`, 95%CI = [`r report_value(rep_ce_vdiff_high_exp3[2], digits = 2)`, `r report_value(rep_ce_vdiff_high_exp3[3], digits = 2)`], vs. Estimate = `r report_value(rep_ce_vdiff_low_exp3[1], digits = 2)`, 95%CI = [`r report_value(rep_ce_vdiff_low_exp3[2], digits = 2)`, `r report_value(rep_ce_vdiff_low_exp3[3], digits = 2)`]).
+Similarly, we found no effect on the average non-zero deviation between component evaluations and ensemble evaluations (`r report_brm_apa(brm_vdiff_exp3, "basket_cat_f1", ">", log_scale = TRUE)`).
+
+This suggests, that the effect of observing more identical average component evaluation vs. ensemble evaluations in the high component certainty ensembles compared to the low component certainty ensembles is driven by Experiment 2, and that this effect is not present in Experiment 3.
+A possible reason for this might be that the cases where the component evaluations vs. ensemble evaluations deviation was exactly zero in Experiment 2 were almost exclusively those at the boundary of the scale (i.e. average component evaluations of exactly 0 or exactly 200; about 98% of these cases), while this was only about 58% in Experiment 3.
+As these boundary cases were overrepresented in the high component certainty ensembles (141 cases in high component certainty ensembles vs. 75 cases in low component certainty ensembles), the observed difference in the chance of a zero-difference between conditions might just be a statistical artifact and not in fact indicate that higher component certainty is indicative of higher evidence sampling consistency.
+
+## Discussion
+
+Experiment 3 demonstrated that value certainty in components significantly influenced ensemble certainty, independent of value positivity (replicating findings of Experiment 2) and value extremity. 
+However, this effect was substantial (i.e. larger than the defined ROPE), only for the ensembles matched on value extremity.
+The stronger effect in extremity-matched ensembles suggests a closer relationship between value positivity and value certainty, aligning with prior research indicating a strong link between these factors [@lebretonAutomaticIntegrationConfidence2015; @leeValueCertaintyChoice2023].
+
+The question remains as to what accounts for the persistent effect of value certainty. 
+We assumed component certainty to tap into the consistency of value-relevant evidence that is sampled during evaluations of those items [@quandtConfidenceEvaluationsValuebased2022]. 
+Exploratory analyses did not support this idea, as we found no credible difference in the average deviation between component evaluations and ensemble evaluations between high and low component certainty ensembles.
+This was surprising in light of previous work [@quandtConfidenceEvaluationsValuebased2022].
+Therefore, in Experiment 4 we examined the idea more directly. 
+Specifically, we matched ensembles on the consistency of repeated evaluations of the same components.
+Based on work suggesting more consistent evaluations of components will be indicative of a more consistent underlying evidence sampling process [@quandtConfidenceEvaluationsValuebased2022], we expected higher ensemble certainty in ensembles with more consistent component evaluations.
+

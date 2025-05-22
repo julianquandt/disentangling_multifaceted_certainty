@@ -1,0 +1,6 @@
+This folder will contain fitted models once they are initially produced by setting fit_models = TRUE in the setup code chunk of 00_manuscript_jepg.Rmd.
+
+The models are numbered and have respective code files with the same number that fit the models in the model_fits folder.
+
+The model fits are all called the manuscript files, and are numbered in order of their appearance in the manuscript, and afterwards the supplemental materials. 
+The numbers should allow to identify which model is used for which claims in the manuscript, by inspecting the respective model loading code chunk in the manuscript files. 

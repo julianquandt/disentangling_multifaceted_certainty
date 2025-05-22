@@ -1,0 +1,1070 @@
+---
+title             : "Supplemental Materials to Disentangling the Multifaceted Nature of Certainty in Evaluations."
+shorttitle        : "SOM: Disentangling the Multifaceted Nature of Certainty in Evaluations"
+
+author: 
+  - name          : "Julian Quandt"
+    affiliation   : "1, 2"
+    corresponding : yes    # Define only one corresponding author
+    address       : "Welthandesplatz 1, D5, 1020 Vienna, Austria"
+    email         : "julian_quandt@live.de"
+  - name          : "Bernd Figner"
+    affiliation   : "2"
+  - name          : "Rob W. Holland"
+    affiliation   : "2"
+  - name          : "Maria Teresa Carere"
+    affiliation   : "2"
+  - name          : "Marijn Eversdijk"
+    affiliation   : "2,3"
+  - name          : "Harm Veling"
+    affiliation   : "2, 4"
+
+
+affiliation:
+  - id            : "1"
+    institution   : "WU Vienna University of Economics and Business"
+  - id            : "2"
+    institution   : "Behavioural Science Institute, Radboud University"
+  - id            : "3"
+    institution   : "Tilburg University"
+  - id            : "4"
+    institution   : "Consumption and Healthy Lifestyles, Wageningen University and Research"
+
+
+authornote: |
+
+  All preregistrations, materials and data are openly available on the Open Science Framework (OSF) under https://osf.io/9y38n/.
+
+bibliography      : ["../baskets_2020.bib", "grateful-refs.bib"]
+
+floatsintext      : yes
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+linenumbers       : yes
+mask              : no
+draft             : no
+
+header-includes:
+  - |
+    \makeatletter
+    \renewcommand{\paragraph}{\@startsection{paragraph}{4}{\parindent}%
+      {0\baselineskip \@plus 0.2ex \@minus 0.2ex}%
+      {-1em}%
+      {\normalfont\normalsize\bfseries\typesectitle}}
+    
+    \renewcommand{\subparagraph}[1]{\@startsection{subparagraph}{5}{1em}%
+      {0\baselineskip \@plus 0.2ex \@minus 0.2ex}%
+      {-\z@\relax}%
+      {\normalfont\normalsize\bfseries\itshape\hspace{\parindent}{#1}\textit{\addperi}}{\relax}}
+    \makeatother
+    \DeclareUnicodeCharacter{394}{$\Delta$}
+    \DeclareUnicodeCharacter{956}{$\mu$}
+    \setlength{\parskip}{0pt}
+    \usepackage{docmute}
+    \usepackage{setspace}
+    \captionsetup[figure]{font={stretch=1,scriptsize, up}}
+
+csl               : "`r system.file('rmd', 'apa7.csl', package = 'papaja')`"
+documentclass     : "apa7"
+output            : 
+  papaja::apa6_pdf:
+    latex_engine: pdflatex
+    dev: cairo_pdf
+    toc: true
+mainfont: Times New Roman
+sansfont: Times New Roman
+monofont: DejaVuSansMono.ttf 
+mathfont: texgyredejavu-math.otf 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache = T, warning = FALSE, message = FALSE)
+source(here::here("01_analyses/00_functions/00_init_scripts.R"))
+source(here::here("01_analyses/00_functions/02_brms_helpers.R"))
+source(here::here("01_analyses/00_functions/03_data_helpers.R"))
+source(here::here("01_analyses/00_functions/osf_auth.R"))
+fit_models <- FALSE # set this to TRUE if you want to refit the models during compilation or to fit the models manually first. if set to FALSE it will directly read RDS files that need to exist in the folder "here::here("01_analyses/fitted_models/")"
+```
+
+
+
+\pagebreak
+
+# Details on Simulation in Figure 1
+
+## Left Panel: Individual Object Evaluations and Certainty
+
+The left panel of Figure 1 illustrates how evidence sample consistency could underlie the apparent relation between evaluation certainty and evaluation extremity. 
+
+We simulated evaluations for 1000 objects $i$ provided by a hypothetical participant.
+First, we simulate $n_{obs}=100$ value-relevant experiences sampled from memory that are restricted to a [-1, 1] scale, resulting in an object evaluation $\mu_i$.
+The samples are drawn from a transformed Beta distribution, as it provides a convenient but unrestrictive distribution to model bounded data. 
+Given the constraint of the scale, we derive the maximum permissible variance $\sigma^2_{max_i}$ of the samples based on their mean $\mu_i$, assuming that $\mu_i$ represents the observed evaluation.
+In other words, assuming that the evidence samples themselves entirely fall inside the same scale as the evaluation, the maximal variance of the sample $\sigma^2_{max_i}$ that can result in a given evaluation $\mu_i$ is restricted by:
+
+\begin{equation}
+\sigma^2_{max_i} = 1 - \mu_i^2.
+\end{equation}
+
+At the same time, we restrict the minimum permissible variance of any sample mean $\mu$ across the entire scale to 
+
+\begin{equation}
+\sigma^2_{min} = 1 - 0.99^2
+\end{equation}
+reflecting the maximum variance that a sample of $\mu_i =0.99$ or $\mu_i = -0.99$ could have.
+Them we simulate a the samples from a Beta distribution:
+
+\begin{equation}
+X_i \sim Beta(a, b), X_i \in [0,1]
+\end{equation}
+and transform them to the [-1, 1] scale as 
+
+\begin{equation}
+\hat{X_i} = 2X_i - 1, \hat{X_i} \in [-1,1]
+\end{equation} 
+reflecting both negative- and positive-value evidence samples.
+
+Specifically, for each evaluation $\mu_i$ we select a target variance $\sigma^2_{target_i}$ from a uniform distribution between $\sigma^2_{min}$ and $\sigma^2_{max_i}$, reflecting that the variance of an evidence sample can fall anywhere in the permissible range.
+We then solve for the Beta distribution parameters $\alpha$ and $\beta$ that result in the target variance $\sigma^2_{target_i}$ for the transformed samples $\hat{X_i}$, satisfying the requirements of 
+
+\begin{equation}
+\mathbb{E}[X_i] = \frac{\mu_i+1}{2}; Var(2X_i-1) = 4 Var(X_i) = \sigma^2_{target_i}. 
+\end{equation}
+Hence, we want $Var(X_i) = \frac{\sigma^2_{target_i}}{4}$.
+Reparametrizing the Beta distribution as
+
+\begin{equation}
+X \sim Beta(mS, (1-m)S), S = \alpha + \beta, m = \frac{\mu_i+1}{2}
+\end{equation}
+and hence defining 
+
+\begin{equation}
+Var(X_i) = \frac{m(1-m)}{S+1}
+\end{equation}
+and solving for S
+
+\begin{equation}
+S = \frac{4m(1-m)}{\sigma^2_{target_i}}-1
+\end{equation}
+and finally transforming $\hat{X_i} = 2X_i - 1$ we create an experience sample $\hat{X_i}$ containing 100 experiences for $i=1000$ equally spaced evaluations of $\mu_i \in [-.95, .95]$ and target variance $\sigma^2_{target_i}$.
+The choice of 100 experiences is arbitrary and only serves to illustrate the concept.
+
+We then calculate the observed sample means $\mu_{obs_i}$ and posterior variance of the sample mean $\frac{\sigma^2_{obs_i}}{n_{obs}}$, where $n_{obs} = 100$ (i.e., we assume a flat prior and normally distributed $\mu_{obs_i}$) for each $\hat{X_i}$.
+From this we calculate the sample consistency as the negative logarithm of the posterior variance
+
+\begin{equation}
+c_{1_i} = -\log(\max(\frac{\sigma^2_{obs_i}}{n_{obs}}, \epsilon_1))
+\end{equation}
+where $\epsilon$ is a small constant to avoid taking the log of zero.
+Mathematically, this is equivalent to the inverse of the posterior variance of the sample mean, but we use the logarithm for numerical stability with small values and for more convenient plotting.
+
+Lastly, assuming that consistency $c_{1_i }$  determines certainty $c_{2_i}$, but might additionally be influenced by other, unobserved factors and measurement error, we add a Gaussian noise term $\epsilon_2$ to the consistency $c_{1_i}$, where the noise term is 
+
+\begin{equation}
+\epsilon_2 \sim N(0, \sigma_{C_1}*\sqrt{\frac{1}{3}}),
+\end{equation}
+such that explained variance $R^2$ of certainty by consistency is $\approx .75$.
+Note that the exact size of $\epsilon_2$ is not theoretically motivated here but the argument would hold also for larger values of $\epsilon_2$. 
+
+## Right panel: Resulting Value-Matched Ensemble Pairs
+
+The right panel of Figure 1 illustrates how the left panel simulation could be applied to create pairs of value-matched ensembles that differ in component evaluation certainty.
+It uses the same clustering approach that we use in the experiments (see *Details about the Clustering Algorithm* in these SOM).
+We then thin out the ensembles for plotting purposes, selecting the first ensemble in each 0.05 interval of the evaluation scale.
+
+# Experiment 1: K-fold cross validation
+
+To compare the capacity of different predictors in  estimating the actual evaluation certainty of ensembles, we employed K-fold Cross-Validation  to assess model performance on left-out data. 
+In K-fold Cross-Validation, the data set is divided into K segments or folds. 
+For each fold, the model is trained on K-1 segments and tested on the remaining segment, thereby allowing us to evaluate the model's predictive accuracy on data it has not previously seen. 
+This method provides a practical assessment of out-of-sample predictive capability, akin to traditional model fit indices like AIC or WAIC, but through empirical evaluation rather than estimation.
+
+In our specific application, we utilized a 10-fold setup, assigning 90% of the data to model training and the remaining 10% to testing in each iteration. We conducted two distinct types of validation: one leaving out two ensembles per participant (leave-out-ensemble) and another leaving out all data from approximately 10% of the participants (leave-out-participant). 
+This dual approach allows us to gauge model robustness both when encountering new ensembles from known participants and when predicting outcomes for entirely new participants.
+
+The results, detailed in Table S1, indicate varied model performances under different conditions:
+
+- Models excluding overall value and value extremity predictors showed that the component-item certainty model consistently outperformed the single-item value similarity models across both leave-out scenarios.
+- When including item-value covariates, the certainty models maintained superior performance, though the distinction from the value similarity model became less pronounced in the leave-out-ensemble fold, and no clear performance advantage was observed for the zero-one-inflated beta models.
+- Across all configurations, component evaluation certainty models surpassed the covariate-only models, reinforcing the importance of component-item certainty in predicting ensemble evaluation certainty.
+
+These findings underscore the utility of component-item certainty as a robust predictor in the context of ensemble evaluation.
+
+```{r load_kfold_objects}
+
+# models without covariates folded on subject
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/027_cvsub_brm2_BB.R"))
+} else {
+  cvsub_brm2_BB <-  readRDS(here::here("01_analyses/fitted_models/027_cvsub_brm2_BB_lite.rds"))
+}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/028_cvsub_brm3_BB.R"))
+} else {
+  cvsub_brm3_BB <-  readRDS(here::here("01_analyses/fitted_models/028_cvsub_brm3_BB_lite.rds"))
+}
+
+
+# models without covariates folded on ensemble
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/029_cvstrat_brm2_BB.R"))
+} else {
+  cvstrat_brm2_BB <-  readRDS(here::here("01_analyses/fitted_models/029_cvstrat_brm2_BB_lite.rds"))
+}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/030_cvstrat_brm3_BB.R"))
+} else {
+  cvstrat_brm3_BB <-  readRDS(here::here("01_analyses/fitted_models/030_cvstrat_brm3_BB_lite.rds"))
+}
+
+# models with covariates folded on subject
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/031_cvsub_brm2_BB_cov.R"))
+} else {
+  cvsub_brm2_BB_cov <-  readRDS(here::here("01_analyses/fitted_models/031_cvsub_brm2_BB_cov_lite.rds"))
+}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/032_cvsub_brm3_BB_cov.R"))
+} else {
+  cvsub_brm3_BB_cov <-  readRDS(here::here("01_analyses/fitted_models/032_cvsub_brm3_BB_cov_lite.rds"))
+}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/033_cvsub_brm4_BB.R"))
+} else {
+  cvsub_brm4_BB <- readRDS(here::here("01_analyses/fitted_models/033_cvsub_brm4_BB_lite.rds"))
+}
+
+# models with covariates folded on ensemble
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/034_cvstrat_brm2_BB_cov.R"))
+} else {
+  cvstrat_brm2_BB_cov <-  readRDS(here::here("01_analyses/fitted_models/034_cvstrat_brm2_BB_cov_lite.rds"))
+}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/035_cvstrat_brm3_BB_cov.R"))
+} else {
+  cvstrat_brm3_BB_cov <-  readRDS(here::here("01_analyses/fitted_models/035_cvstrat_brm3_BB_cov_lite.rds"))
+}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/036_cvstrat_brm4_BB.R"))
+} else {
+  cvstrat_brm4_BB <- readRDS(here::here("01_analyses/fitted_models/036_cvstrat_brm4_BB_lite.rds"))
+}
+
+```
+
+```{r create_comparisons_hyp1_kfold, options}
+compare_sub_hyp1 <- loo_compare(cvsub_brm2_BB, cvsub_brm3_BB) #yes
+compare_strat_hyp1 <- loo_compare(cvstrat_brm2_BB, cvstrat_brm3_BB) #yes
+compare_sub_cov_hyp1 <- loo_compare(cvsub_brm2_BB_cov, cvsub_brm3_BB_cov, cvsub_brm4_BB) #yes / yes
+compare_strat_cov_hyp1 <- loo_compare(cvstrat_brm2_BB_cov, cvstrat_brm3_BB_cov, cvstrat_brm4_BB) # yes/ yes
+```
+
+```{r tableS1, options}
+table1_sub_raw <- rbind(c(model = "component evaluation certainty"
+                          , `k-fold elpd` = report_value(cvsub_brm2_BB$estimates[1], 2)
+                          , SD = report_value(cvsub_brm2_BB$estimates[4], 2)
+                          , "\u0394 elpd" = "-"
+                          , "\u0394 SD" = "-"
+                          , "\u0394 elpd / \u0394 SD" = "-"
+                        ),
+                        c(model = "value similarity"
+                          , `k-fold elpd` =  report_value(cvsub_brm3_BB$estimates[1], 2)
+                          , SD = report_value(cvsub_brm3_BB$estimates[4], 2) 
+                          , "\u0394 elpd" = report_value(abs(compare_sub_hyp1[2]), 2)
+                          , "\u0394 SD" = report_value(compare_sub_hyp1[4], 2)
+                          , "\u0394 elpd / \u0394 SD" = report_value(abs(compare_sub_hyp1[2])/compare_sub_hyp1[4], 2)
+                        )
+                        )
+
+table1_strat_raw <- rbind(c(model = "component evaluation certainty"
+                            , `k-fold elpd` = report_value(cvstrat_brm2_BB$estimates[1], 2)
+                            , SD = report_value(cvstrat_brm2_BB$estimates[4], 2)
+                            , "\u0394 elpd" = "-"
+                            , "\u0394 SD" = "-"
+                            , "\u0394 elpd / \u0394 SD" = "-"
+                        ),
+                        c(model = "value similarity"
+                          , `k-fold elpd` = report_value(cvstrat_brm3_BB$estimates[1], 2)
+                          , SD = report_value(cvstrat_brm3_BB$estimates[4], 2)
+                          , "\u0394 elpd" = report_value(abs(compare_strat_hyp1[2]), 2)
+                          , "\u0394 SD" = report_value(compare_strat_hyp1[4], 2)
+                          , "\u0394 elpd / \u0394 SD" = report_value(abs(compare_strat_hyp1[2])/compare_strat_hyp1[4], 2)
+                        )
+                        )
+
+table1_sub_cov_raw <- rbind(c(model = "component evaluation certainty"
+                              , `k-fold elpd` = report_value(cvsub_brm2_BB_cov$estimates[1], 2)
+                              , SD = report_value(cvsub_brm2_BB_cov$estimates[4], 2)
+                              , "\u0394 elpd" = "-"
+                              , "\u0394 SD" = "-"
+                              , "\u0394 elpd / \u0394 SD" = "-"
+
+                        ),
+                        c(model = "value similarity"
+                          , `k-fold elpd` =  report_value(cvsub_brm3_BB_cov$estimates[1], 2)
+                          , SD = report_value(cvsub_brm3_BB_cov$estimates[4], 2)
+                          , "\u0394 elpd" = report_value(abs(compare_sub_cov_hyp1[2]), 2)
+                          , "\u0394 SD" = report_value(compare_sub_cov_hyp1[5], 2)
+                          , "\u0394 elpd / \u0394 SD" = report_value(abs(compare_sub_cov_hyp1[2])/compare_sub_cov_hyp1[5], 2)
+                        ),
+                         c(model = "value-based covariates"
+                           , `k-fold elpd` =  report_value(cvsub_brm4_BB$estimates[1], 2)
+                           , SD = report_value(cvsub_brm4_BB$estimates[4], 2)
+                           , "\u0394 elpd" = report_value(abs(compare_sub_cov_hyp1[3]), 2)
+                           , "\u0394 SD" = report_value(compare_sub_cov_hyp1[6], 2)
+                           , "\u0394 elpd / \u0394 SD" = report_value(abs(compare_sub_cov_hyp1[3])/compare_sub_cov_hyp1[6], 2)
+
+                        )
+                        )
+
+table1_strat_cov_raw <- rbind(c(model = "component evaluation certainty" 
+                                , `k-fold elpd` = report_value(cvstrat_brm2_BB_cov$estimates[1], 2)
+                                , SD = report_value(cvstrat_brm2_BB_cov$estimates[4], 2)
+                                , "\u0394 elpd" = "-"
+                                , "\u0394 SD" = "-"
+                                , "\u0394 elpd / \u0394 SD" = "-"
+                        ),
+                        c(model = "value similarity"
+                          , `k-fold elpd` =  report_value(cvstrat_brm3_BB_cov$estimates[1], 2)
+                          , SD = report_value(cvstrat_brm3_BB_cov$estimates[4], 2)
+                          , "\u0394 elpd" = report_value(abs(compare_strat_cov_hyp1[2]), 2)
+                          , "\u0394 SD" = report_value(compare_strat_cov_hyp1[5], 2)
+                          , "\u0394 elpd / \u0394 SD" =
+                            report_value(abs(compare_strat_cov_hyp1[2])/compare_strat_cov_hyp1[5], 2)
+                        ),
+                         c(model = "value-based covariates"
+                           , `k-fold elpd` =  report_value(cvstrat_brm4_BB$estimates[1], 2)
+                           , SD = report_value(cvstrat_brm4_BB$estimates[4], 2)
+                           , "\u0394 elpd" = report_value(abs(compare_strat_cov_hyp1[3]), 2)
+                           , "\u0394 SD" = report_value(compare_strat_cov_hyp1[6], 2)
+                           , "\u0394 elpd / \u0394 SD" =
+                             report_value(abs(compare_strat_cov_hyp1[3])/compare_strat_cov_hyp1[6], 2)
+                        )
+                        )
+
+
+
+table1_apa <- apa_table(
+  list("\\textbf{leave-out-subject (no covariates)}" = table1_sub_raw 
+       , "\\textbf{leave-out-ensemble (no covariates)}" = table1_strat_raw
+       , "\\textbf{leave-out-subject}" = table1_sub_cov_raw
+       , "\\textbf{leave-out-ensemble}" = table1_strat_cov_raw
+       )
+  , caption = "Results of K-fold Cross Validation"
+  , align = c("l", rep("r", 5))
+)
+
+table1_apa
+```
+
+# Experiment 1: Ensemble Matching Manipulation Checks
+
+```{r load_exp1_checks, include = FALSE, echo = FALSE}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/037_brm_bc_conf_e1.R"))
+} else {
+  brm_bc_conf <- readRDS(here::here("01_analyses/fitted_models/037_brm_bc_conf_e1.rds"))
+}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/038_brm_bc_sd_e1.R"))
+} else {
+  brm_bc_sd <- readRDS(here::here("01_analyses/fitted_models/038_brm_bc_sd_e1.rds"))
+}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/039_brm1_e1h1_BB.R"))
+} else {
+  brm1_e1h1_BB <- readRDS(here::here("01_analyses/fitted_models/039_brm1_e1h1_bb.rds"))
+}
+
+
+```
+
+The sorting and categorization algorithm performed well in creating the desired ensemble properties.
+Specifically, the low component evaluation certainty ensembles (category 1 and 2) scored consistently lower on average component evaluation certainty compared to their counterparts (category 3 and 4; `r report_brm_apa(brm_bc_conf, "basket_confidence_cat_f1", "<", log_scale = FALSE)`) with only small, though credible, variations across evaluation similarity ensembles (categories 1 and 3 vs. 2 and 4) (`r report_brm_apa(brm_bc_conf, "basket_diversity_cat_f1", "<", log_scale = FALSE)`)
+Similarly, the low evaluation similarity ensembles (category 1 and 3) scored lower on evaluation similarity compared to their counterparts (category 2 and 4) (`r report_brm_apa(brm_bc_sd, "basket_diversity_cat_f1", "<", log_scale = FALSE)`). Again, evaluation similarity differed only slightly between the ensembles created to differ on component evaluation certainty (`r report_brm_apa(brm_bc_sd, "basket_confidence_cat_f1", "<", log_scale = FALSE)`). 
+Altogether, this suggests that the ensemble types varied across the expected dimension in the expected direction without meaningful variations on the other dimension.
+
+# Experiment 1: Skew of evaluation certainty distribution
+
+As Figure S1 shows, the distribution of ensemble-evaluation certainty judgments was heavily left-skewed, indicating that most of the certainty judgements were very high, with a mean of `r report_value(mean(brm1_e1h1_BB$data$confidence),2)` and a median of `r report_value(median(brm1_e1h1_BB$data$confidence),2)`.
+
+
+(ref:figureS1-caption) Density plot of ensemble-evaluation certainty judgments. Solid line displays distribution mean, and dotted line displays distribution median.
+
+```{r figureS1, fig.cap = "(ref:figureS1-caption)", warning = FALSE, message = FALSE}
+
+ggplot(brm1_e1h1_BB$data, aes(x = confidence))+geom_density()+theme_apa() +
+  labs(
+    x = "Ensemble-evalution certainty judgements"
+    , y = "Density"
+  ) +
+  geom_vline(aes(xintercept = mean(brm1_e1h1_BB$data$confidence)))+
+  geom_vline(aes(xintercept = median(brm1_e1h1_BB$data$confidence)), linetype = "dotted")+
+  theme_apa(box = TRUE) +
+  theme(legend.position = c(0.2, 0.8))
+
+```
+
+# Deviations from preregistration
+
+## Experiment 1
+
+We stated that that we would use numeric predictors for evaluation certainty and evaluation similarity (quantified as the SD between items in an ensemble), but changed this in the manuscript to the categorical predictors to increase consistency with the analyses reported for the other Experiments. 
+The original results did however, provide identical conclusions:
+
+```{r load_model_e1h1_cov, include = FALSE, echo = FALSE}
+h_BB_compare <- c('|evalution certainty| - |evaluation similarity|' = "(plogis(Intercept + confidence_mean_s)-plogis(Intercept - confidence_mean_s)) > (plogis(Intercept - value_sd_s)-plogis(Intercept + value_sd_s)) ")
+h_brm1_e1h1_BB_compare <- hypothesis(brm1_e1h1_BB, h_BB_compare)
+
+# emmeans for the comparison
+emmeans_brm1_e1h1_BB <- emmeans::emmeans(brm1_e1h1_BB, specs = c("confidence_mean_s", "value_sd_s"))
+```
+
+Component evaluation certainty (`r report_brm_apa(brm1_e1h1_BB, "confidence_mean_s", "<", log_scale = TRUE)`), and evaluation similarity (`r report_brm_apa(brm1_e1h1_BB, "value_sd_s", ">", log_scale = TRUE)`) were credible predictors of the ensemble evaluation certainty.
+When comparing the size of the estimates component evaluation certainty (`r report_brm_apa(brm1_e1h1_BB, "confidence_mean_s", "<", log_scale = T)`) was a stronger predictor than evaluation similarity (`r report_brm_apa(brm1_e1h1_BB, "value_sd_s", ">", log_scale =T)`), with a credible difference between the estimate sizes (`r report_brm_apa(h_brm1_e1h1_BB_compare, hypothesis = T, postprop_direction="<")`).
+This numerical difference was substantiated by K-fold cross validation showing that component evaluation certainty consistently outperformed evaluation similarity at predicting held-out ensemble evaluation certainty (see Cross Validation section and Table S1 in these Supplemental Materials).
+
+## Experiment 2
+
+```{r brm1_e2h1_BB, output = FALSE}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/040_brm5_e2h1_BB_nostim.R"))
+} else {
+  brm5_e2h1_BB_nostim <- readRDS(here::here("01_analyses/fitted_models/040_brm5_e2h1_bb_nostim.rds"))
+}
+
+rep_value_sim <- report_brm_apa(hypothesis(brm5_e2h1_BB_nostim, "-item_value_sd_s > 0"), postprop_direction = "<", hypothesis =TRUE, log_scale = TRUE)
+```
+
+We did not preregister including a random intercept for ensembles in the model. 
+However, such an intercept makes sense as Experiment 2 includes 3 evaluations and certainty ratings per ensemble, which are likely to be correlated within ensembles.
+The inclusion of this random intercept did not change the results of the model, and the conclusions remained the same.
+Component evaluation certainty condition, `r report_brm_apa(brm5_e2h1_BB_nostim, "basket_cat_f1", "<", log_scale = FALSE)`, value positivity: `r report_brm_apa(brm5_e2h1_BB_nostim, "basket_value_s", "<", log_scale = FALSE)`, value similarity: `r report_brm_apa(brm5_e2h1_BB_nostim, "item_value_sd_s", ">", log_scale = FALSE)` and value extremity: `r report_brm_apa(hypothesis(brm5_e2h1_BB_nostim, "-item_value_sd_s > 0"), postprop_direction = "<", hypothesis =TRUE, log_scale = TRUE)` were credible predictors of ensemble evaluation certainty.
+
+
+# Model family comparisons
+
+We defined four models in the preregistrations of Experiment 1 to 3 that we considered as candidates to describe the data-generating process: a Gaussian model, a Skew-Normal model, a Beta-Binomial model and a Zero-One-Inflated Beta (ZOIB) model, all of which use the default priors that are implemented in the brms package.
+The models were again compared and the Beta-Binomial model is reported in the main paper (and the only one used in Experiment 4) due to better performance on recovering data parameters and fit to the response distribution.
+
+
+```{r load_models_tables1, include = FALSE, echo = FALSE}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/041_brm1_e1h1_gauss.R"))
+} else {
+  brm1_e1h1_gauss <- readRDS(here::here("01_analyses/fitted_models/041_brm1_e1h1_gauss.rds"))
+}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/042_brm1_e1h1_zoib.R"))
+} else {
+  brm1_e1h1_zoib <- readRDS(here::here("01_analyses/fitted_models/042_brm1_e1h1_zoib.rds"))
+}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/043_brm1_e2h1_gauss.R"))
+} else {
+  brm1_e2h1_gauss <- readRDS(here::here("01_analyses/fitted_models/043_brm1_e2h1_gauss.rds"))
+}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/044_brm1_e2h1_zoib.R"))
+} else {
+  brm1_e2h1_zoib <- readRDS(here::here("01_analyses/fitted_models/044_brm1_e2h1_zoib.rds"))
+}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/045_brm5_e3h1_gauss.R")) 
+} else {
+  brm5_e3h1_gauss <- readRDS(here::here("01_analyses/fitted_models/045_brm5_e3h1_gauss.rds"))
+}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/046_brm5_e3h1_zoib.R")) 
+} else {
+  brm5_e3h1_zoib <- readRDS(here::here("01_analyses/fitted_models/046_brm5_e3h1_zoib.rds"))
+}
+
+
+
+
+```
+
+
+```{r tables1, echo = FALSE}
+
+
+################################ exp 1 ##########################################
+
+
+
+rep_brm1_e1h1_conf <- report_brm_apa(brm1_e1h1_gauss, pred_name = "confidence_mean_s", postprop_direction = "<", hypothesis = FALSE, log_scale = F, print_out = F)
+
+rep_brm1_e1h1_value <- report_brm_apa(brm1_e1h1_gauss, pred_name = "value_sd_s", postprop_direction = ">", hypothesis = FALSE, log_scale = F, print_out = F)
+
+table1_e1h1_gauss <- rbind(c(Predictor = "average CEC"
+                      , estimate = rep_brm1_e1h1_conf$es
+                      , `95% CI` = paste0(rep_brm1_e1h1_conf$ciMIN, 
+                                          " ", rep_brm1_e1h1_conf$ciMAX)
+                      , pp = rep_brm1_e1h1_conf$pp
+                      , `pp equivalence` = " - "
+                      ),
+                    c(Predictor = "value similarity"
+                      , estimate = -as.numeric(rep_brm1_e1h1_value$es)
+                      , `95% CI` = paste0(-as.numeric(rep_brm1_e1h1_value$ciMAX), 
+                                          " ", -as.numeric(rep_brm1_e1h1_value$ciMIN))
+                      , pp = rep_brm1_e1h1_value$pp
+                      , `pp equivalence` = " - "
+                      )
+                    )
+
+rep_brm1_e1h1_conf_zoib <- report_brm_apa(brm1_e1h1_zoib, pred_name = "confidence_mean_s", postprop_direction = "<", hypothesis = FALSE, log_scale = T, print_out = F)
+
+rep_brm1_e1h1_value_zoib <- report_brm_apa(brm1_e1h1_zoib, pred_name = "value_sd_s", postprop_direction = ">", hypothesis = FALSE, log_scale = T, print_out = F)
+
+table2_e1h1_zoib <- rbind(c(Predictor = "average CEC"
+                      , estimate = rep_brm1_e1h1_conf_zoib$es
+                      , `95% CI` = paste0(rep_brm1_e1h1_conf_zoib$ciMIN, 
+                                          " ", rep_brm1_e1h1_conf_zoib$ciMAX)
+                      , pp = rep_brm1_e1h1_conf_zoib$pp
+                      , `pp equivalence` = " - "
+                      ),
+                    c(Predictor = "value similarity"
+                      , estimate = -as.numeric(rep_brm1_e1h1_value_zoib$es)
+                      , `95% CI` = paste0(-as.numeric(rep_brm1_e1h1_value_zoib$ciMAX), 
+                                          " ", -as.numeric(rep_brm1_e1h1_value_zoib$ciMIN))
+                      , pp = rep_brm1_e1h1_value_zoib$pp
+                      , `pp equivalence` = " - "
+                      )
+                    )
+
+
+
+
+################################ exp 2 ##########################################
+
+
+rep_brm1_e2_conf <- report_brm_apa(brm1_e2h1_gauss, pred_name = "basket_cat_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = F, print_out = F)
+rep_brm1_e2_conf_conf_equiv <- report_brm_apa(brm1_e2h1_gauss, pred_name = "basket_cat_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = F, print_out = F, offset = .025)
+
+rep_brm1_e2_sd <- report_brm_apa(brm1_e2h1_gauss, pred_name = "item_value_sd_s", postprop_direction = ">", hypothesis = FALSE, log_scale = F, print_out = F)
+rep_brm1_e2_sd_equiv <- report_brm_apa(brm1_e2h1_gauss, pred_name = "item_value_sd_s", postprop_direction = ">", hypothesis = FALSE, log_scale = F, print_out = F, offset = .025)
+
+rep_brm1_e2_value <- report_brm_apa(brm1_e2h1_gauss, pred_name = "basket_value_s", postprop_direction = "<", hypothesis = FALSE, log_scale = F, print_out = F)
+rep_brm1_e2_value_equiv <- report_brm_apa(brm1_e2h1_gauss, pred_name = "basket_value_s", postprop_direction = "<", hypothesis = FALSE, log_scale = F, print_out = F, offset = .025)
+
+
+table3_e2_gauss <- rbind(c(Predictor = "item certainty condition"
+                      , estimate = rep_brm1_e2_conf$es
+                      , `95% CI` = paste0(rep_brm1_e2_conf$ciMIN, 
+                                          " ", rep_brm1_e2_conf$ciMAX)
+                      , pp = rep_brm1_e2_conf$pp
+                      , `pp equivalence` = rep_brm1_e2_conf_conf_equiv$pp
+                      ),
+                      c(Predictor = "value positivity"
+                      , estimate = rep_brm1_e2_value$es
+                      , `95% CI` = paste0(rep_brm1_e2_value$ciMIN, 
+                                          " ", rep_brm1_e2_value$ciMAX)
+                      , pp = rep_brm1_e2_value$pp
+                      , `pp equivalence` = rep_brm1_e2_value_equiv$pp
+                      ),
+                    c(Predictor = "value similarity"
+                      , estimate = -as.numeric(rep_brm1_e2_sd$es)
+                      , `95% CI` = paste0(-as.numeric(rep_brm1_e2_sd$ciMAX), 
+                                          " ", -as.numeric(rep_brm1_e2_sd$ciMIN))
+                      , pp = rep_brm1_e2_sd$pp
+                      , `pp equivalence` = rep_brm1_e2_sd_equiv$pp
+                      )
+                    )
+
+rep_brm1_e2_conf_zoib <- report_brm_apa(brm1_e2h1_zoib, pred_name = "basket_cat_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = T, print_out = F)
+rep_brm1_e2_conf_equiv_zoib <- report_brm_apa(brm1_e2h1_zoib, pred_name = "basket_cat_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = T, print_out = F, offset = .025)
+
+rep_brm1_e2_sd_zoib <- report_brm_apa(brm1_e2h1_zoib, pred_name = "item_value_sd_s", postprop_direction = ">", hypothesis = FALSE, log_scale = T, print_out = F)
+rep_brm1_e2_sd_equiv_zoib <- report_brm_apa(brm1_e2h1_zoib, pred_name = "item_value_sd_s", postprop_direction = ">", hypothesis = FALSE, log_scale = T, print_out = F, offset = .025)
+
+rep_brm1_e2_value_zoib <- report_brm_apa(brm1_e2h1_zoib, pred_name = "basket_value_s", postprop_direction = "<", hypothesis = FALSE, log_scale = T, print_out = F)
+rep_brm1_e2_value_equiv_zoib <- report_brm_apa(brm1_e2h1_zoib, pred_name = "basket_value_s", postprop_direction = "<", hypothesis = FALSE, log_scale = T, print_out = F, offset = .025)
+
+table4_e2_zoib <- rbind(c(Predictor = "component certainty condition"
+                      , estimate = rep_brm1_e2_conf_zoib$es
+                      , `95% CI` = paste0(rep_brm1_e2_conf_zoib$ciMIN, 
+                                          " ", rep_brm1_e2_conf_zoib$ciMAX)
+                      , pp = rep_brm1_e2_conf_zoib$pp
+                      , `pp equivalence` = rep_brm1_e2_conf_equiv_zoib$pp
+                      ),
+                      c(Predictor = "value positivity"
+                      , estimate = rep_brm1_e2_value_zoib$es
+                      , `95% CI` = paste0(rep_brm1_e2_value_zoib$ciMIN, 
+                                          " ", rep_brm1_e2_value_zoib$ciMAX)
+                      , pp = rep_brm1_e2_value_zoib$pp
+                      , `pp equivalence` = rep_brm1_e2_sd_equiv_zoib$pp
+                      ),
+                    c(Predictor = "value similarity"
+                      , estimate = -as.numeric(rep_brm1_e2_sd_zoib$es)
+                      , `95% CI` = paste0(-as.numeric(rep_brm1_e2_sd_zoib$ciMAX), 
+                                          " ", -as.numeric(rep_brm1_e2_sd_zoib$ciMIN))
+                      , pp = rep_brm1_e2_sd_zoib$pp
+                      , `pp equivalence` = rep_brm1_e2_sd_equiv_zoib$pp
+                      )
+                    )
+
+
+############################################### exp 3 ################################################
+
+
+######## gaussian ########
+
+
+rep_brm5_e3h1_conf <- report_brm_apa(brm5_e3h1_gauss, pred_name = "basket_cat_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = F, print_out = F)
+rep_brm5_e3h1_conf_equiv <- report_brm_apa(brm5_e3h1_gauss, pred_name = "basket_cat_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = F, print_out = F, offset = .025)
+
+rep_brm5_e3h1_value <- report_brm_apa(brm5_e3h1_gauss, pred_name = "basket_value_s", postprop_direction = "<", hypothesis = FALSE, log_scale = F, print_out = F)
+rep_brm5_e3h1_value_equiv <- report_brm_apa(brm5_e3h1_gauss, pred_name = "basket_value_s", postprop_direction = "<", hypothesis = FALSE, log_scale = F, print_out = F, offset = .025)
+
+rep_brm5_e3h1_sd <- report_brm_apa(brm5_e3h1_gauss, pred_name = "value_sd_s", postprop_direction = ">", hypothesis = FALSE, log_scale = F, print_out = F)
+rep_brm5_e3h1_sd_equiv <- report_brm_apa(brm5_e3h1_gauss, pred_name = "value_sd_s", postprop_direction = ">", hypothesis = FALSE, log_scale = F, print_out = F, offset = .025)
+
+rep_brm5_e3h1_ex <- report_brm_apa(brm5_e3h1_gauss, pred_name = "basket_value_ex_s", postprop_direction = "<", hypothesis = FALSE, log_scale = F, print_out = F)
+rep_brm5_e3h1_ex_equiv <- report_brm_apa(brm5_e3h1_gauss, pred_name = "basket_value_ex_s", postprop_direction = "<", hypothesis = FALSE, log_scale = F, print_out = F, offset = .025)
+
+rep_brm5_e3h1_match <- report_brm_apa(brm5_e3h1_gauss, pred_name = "basket_matching_var_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = F, print_out = F)
+rep_brm5_e3h1_match_equiv <- report_brm_apa(brm5_e3h1_gauss, pred_name = "basket_matching_var_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = F, print_out = F, offset = .025)
+
+rep_brm5_e3h1_int <- report_brm_apa(brm5_e3h1_gauss, pred_name = "basket_cat_f1:basket_matching_var_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = F, print_out = F)
+rep_brm5_e3h1_int_equiv <- report_brm_apa(brm5_e3h1_gauss, pred_name = "basket_cat_f1:basket_matching_var_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = F, print_out = F, offset = .025)
+
+
+
+
+table5_e3_gauss <- rbind(c(Predictor = "component certainty condition"
+                      , estimate = rep_brm5_e3h1_conf$es
+                      , `95% CI` = paste0(rep_brm5_e3h1_conf$ciMIN, 
+                                          " ", rep_brm5_e3h1_conf$ciMAX)
+                      , pp = rep_brm5_e3h1_conf$pp
+                      , `pp equivalence` = rep_brm5_e3h1_conf_equiv$pp
+                      ),
+                    c(Predictor = "value positivity"
+                      , estimate = rep_brm5_e3h1_value$es
+                      , `95% CI` = paste0(rep_brm5_e3h1_value$ciMIN, 
+                                          " ", rep_brm5_e3h1_value$ciMAX)
+                      , pp = rep_brm5_e3h1_value$pp
+                      , `pp equivalence` = rep_brm5_e3h1_value_equiv$pp
+                      ),
+                    c(Predictor = "value similarity"
+                      , estimate =-as.numeric(rep_brm5_e3h1_sd$es)
+                      , `95% CI` = paste0(-as.numeric(rep_brm5_e3h1_sd$ciMAX), 
+                                          " ", -as.numeric(rep_brm5_e3h1_sd$ciMIN))
+                      , pp = rep_brm5_e3h1_sd$pp
+                      , `pp equivalence` = rep_brm5_e3h1_sd_equiv$pp
+                    ),
+                    c(Predictor = "value extremity"
+                      , estimate = rep_brm5_e3h1_ex$es
+                      , `95% CI` = paste0(rep_brm5_e3h1_ex$ciMIN, 
+                                          " ", rep_brm5_e3h1_ex$ciMAX)
+                      , pp = rep_brm5_e3h1_ex$pp
+                      , `pp equivalence` = rep_brm5_e3h1_ex_equiv$pp
+                      ),
+                      c(Predictor = "matching variable"
+                      , estimate = rep_brm5_e3h1_match$es
+                      , `95% CI` = paste0(rep_brm5_e3h1_match$ciMIN, 
+                                          " ", rep_brm5_e3h1_match$ciMAX)
+                      , pp = rep_brm5_e3h1_match$pp
+                      , `pp equivalence` = rep_brm5_e3h1_match_equiv$pp
+                      ),
+                      c(Predictor = "component certainty condition X matching variable"
+                      , estimate = rep_brm5_e3h1_int$es
+                      , `95% CI` = paste0(rep_brm5_e3h1_int$ciMIN, 
+                                          " ", rep_brm5_e3h1_int$ciMAX)
+                      , pp = rep_brm5_e3h1_int$pp
+                      , `pp equivalence` = rep_brm5_e3h1_int_equiv$pp
+                      )
+                      
+                    )
+
+
+
+
+############# zoib ##############
+
+
+rep_brm5_e3h1_conf_zoib <- report_brm_apa(brm5_e3h1_zoib, pred_name = "basket_cat_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = T, print_out = F)
+rep_brm5_e3h1_conf_equiv_zoib <- report_brm_apa(brm5_e3h1_zoib, pred_name = "basket_cat_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = T, print_out = F, offset = .025)
+
+rep_brm5_e3h1_value_zoib <- report_brm_apa(brm5_e3h1_zoib, pred_name = "basket_value_s", postprop_direction = "<", hypothesis = FALSE, log_scale = T, print_out = F)
+rep_brm5_e3h1_value_equiv_zoib <- report_brm_apa(brm5_e3h1_zoib, pred_name = "basket_value_s", postprop_direction = "<", hypothesis = FALSE, log_scale = T, print_out = F, offset = .025)
+
+rep_brm5_e3h1_sd_zoib <- report_brm_apa(brm5_e3h1_zoib, pred_name = "value_sd_s", postprop_direction = ">", hypothesis = FALSE, log_scale = T, print_out = F)
+rep_brm5_e3h1_sd_equiv_zoib <- report_brm_apa(brm5_e3h1_zoib, pred_name = "value_sd_s", postprop_direction = ">", hypothesis = FALSE, log_scale = T, print_out = F, offset = .025)
+
+rep_brm5_e3h1_ex_zoib <- report_brm_apa(brm5_e3h1_zoib, pred_name = "basket_value_ex_s", postprop_direction = "<", hypothesis = FALSE, log_scale = T, print_out = F)
+rep_brm5_e3h1_ex_equiv_zoib <- report_brm_apa(brm5_e3h1_zoib, pred_name = "basket_value_ex_s", postprop_direction = "<", hypothesis = FALSE, log_scale = T, print_out = F, offset = .025)
+
+rep_brm5_e3h1_match_zoib <- report_brm_apa(brm5_e3h1_zoib, pred_name = "basket_matching_var_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = T, print_out = F)
+rep_brm5_e3h1_match_equiv_zoib <- report_brm_apa(brm5_e3h1_zoib, pred_name = "basket_matching_var_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = T, print_out = F, offset = .025)
+
+rep_brm5_e3h1_int_zoib <- report_brm_apa(brm5_e3h1_zoib, pred_name = "basket_cat_f1:basket_matching_var_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = T, print_out = F)
+rep_brm5_e3h1_int_equiv_zoib <- report_brm_apa(brm5_e3h1_zoib, pred_name = "basket_cat_f1:basket_matching_var_f1", postprop_direction = "<", hypothesis = FALSE, log_scale = T, print_out = F, offset = .025)
+
+
+
+
+table6_e3_zoib <- rbind(c(Predictor = "component certainty condition"
+                      , estimate = rep_brm5_e3h1_conf_zoib$es
+                      , `95% CI` = paste0(rep_brm5_e3h1_conf_zoib$ciMIN, 
+                                          " ", rep_brm5_e3h1_conf_zoib$ciMAX)
+                      , pp = rep_brm5_e3h1_conf_zoib$pp
+                      , `pp equivalence` = rep_brm5_e3h1_conf_equiv_zoib$pp
+                      ),
+                    c(Predictor = "value positivity"
+                      , estimate = rep_brm5_e3h1_value_zoib$es
+                      , `95% CI` = paste0(rep_brm5_e3h1_value_zoib$ciMIN, 
+                                          " ", rep_brm5_e3h1_value_zoib$ciMAX)
+                      , pp = rep_brm5_e3h1_value_zoib$pp
+                      , `pp equivalence` = rep_brm5_e3h1_value_equiv_zoib$pp
+                      ),
+                    c(Predictor = "value similarity"
+                      , estimate =-as.numeric(rep_brm5_e3h1_sd_zoib$es)
+                      , `95% CI` = paste0(-as.numeric(rep_brm5_e3h1_sd_zoib$ciMAX), 
+                                          " ", -as.numeric(rep_brm5_e3h1_sd_zoib$ciMIN))
+                      , pp = rep_brm5_e3h1_sd_zoib$pp
+                      , `pp equivalence` = rep_brm5_e3h1_sd_equiv_zoib$pp
+                    ),
+                    c(Predictor = "value extremity"
+                      , estimate = rep_brm5_e3h1_ex_zoib$es
+                      , `95% CI` = paste0(rep_brm5_e3h1_ex_zoib$ciMIN, 
+                                          " ", rep_brm5_e3h1_ex_zoib$ciMAX)
+                      , pp = rep_brm5_e3h1_ex_zoib$pp
+                      , `pp equivalence` = rep_brm5_e3h1_ex_equiv_zoib$pp
+                      ),
+                      c(Predictor = "matching variable"
+                      , estimate = rep_brm5_e3h1_match_zoib$es
+                      , `95% CI` = paste0(rep_brm5_e3h1_match_zoib$ciMIN, 
+                                          " ", rep_brm5_e3h1_match_zoib$ciMAX)
+                      , pp = rep_brm5_e3h1_match_zoib$pp
+                      , `pp equivalence` = rep_brm5_e3h1_match_equiv_zoib$pp
+                      ),
+                      c(Predictor = "component certainty condition X matching variable"
+                      , estimate = rep_brm5_e3h1_int_zoib$es
+                      , `95% CI` = paste0(rep_brm5_e3h1_int_zoib$ciMIN, 
+                                          " ", rep_brm5_e3h1_int_zoib$ciMAX)
+                      , pp = rep_brm5_e3h1_int_zoib$pp
+                      , `pp equivalence` = rep_brm5_e3h1_int_equiv_zoib$pp
+                      )
+                      
+                    )
+
+
+
+
+
+tableS2_apa <- apa_table(
+  list(`Experiment 1 (gaussian)` = table1_e1h1_gauss, `Experiment 1 (ZOIB)` = table2_e1h1_zoib,
+  `Experiment 2 (gaussian)` = table3_e2_gauss, `Experiment 2 (ZOIB)` = table4_e2_zoib,
+  `Experiment 3 (gaussian)` = table5_e3_gauss, `Experiment 3 (ZOIB)` = table6_e3_zoib)
+  , caption = "Model parameter values for predictors in Experiment 1 to 3 (pp equivalence indicates posterior proportion opposite to the prediction falling inside the ROPE)"
+  , align = c("l", rep("r", 5))
+)
+
+tableS2_apa
+```
+
+# Experiments 2 to 4: Power analysis
+
+Using the posterior predictions for possible effect sizes based on the respective previous Experiments (i.e., the data of Experiment 1 for Experiment 2 and the data of Experiment 2 for Experiment 3 and 4), we conducted a power simulation of 4 steps.
+First, a multivariate zero-one-inflated beta model model was fit on the evaluations and certainty judgements of the individual items.
+The multivariate zero-one-inflated beta (ZOIB) model is a specialized finite mixture-model designed to effectively handle data characterized by a preponderance of boundary values (0 and 1) and continuous variation within the open interval (0, 1). This model categorizes responses into two distinct processes: boundary responses that are precisely at the extremes (0 or 1) and intermediate responses that occur between these extremes.
+Employing the ZOIB model allows for separate estimation of these two types of responses, thereby facilitating more accurate statistical analysis in datasets where extreme values are disproportionately represented. This approach is particularly advantageous for simulations, where the data-generating process is known to produce a high number of boundary responses.
+Second, from this model, posterior predictions were created for item values and certainties that served as simulated evaluations and certainty judgement for possible future observations.
+Third, the clustering algorithm was applied to each simulated data set, creating simulated ensembles that were matched on value and differed on certainty. 
+Finally, the simulated clustered ensembles were used to fit the outcome model that would predict the ensemble certainty based on the simulated ensembles' component certainty and value similarity.
+Thus, this simulation strategy ensured realistic simulations of ensemble properties and ensemble counts for each participant, based on the actually observed data in the previous experiments.
+
+# Experiments 2 to 4: Details about the clustering algorithm
+
+The clustering algorithm used euclidean distance with an average linkage to create _k_ clusters where _k_ was the number of rated items for a given participant divided by 6 to create at least 2 ensembles that contained items of similar value per cluster.
+The exact number of ensembles that the algorithm created per participant depended on the individual ratings of each participant.
+This set of ensembles would contain pairs in which 2 ensembles would be of approximately equal value as they contain items from the same cluster.
+Hence, the algorithm would create between 2 and 10 ensembles per participant, as with 60 items, a maximum of 10 ensemble pairs could be created.
+Within each cluster, in a second step, the items were ranked based on their certainty, and after excluding the highest and the lowest certainty item from each cluster in order to exclude potential outliers, the 3 highest-certainty items formed a _high-certainty_ ensemble of the cluster and the 3 lowest-certainty items formed a _low-certainty_ ensemble of the cluster.
+
+# Experiments 2 to 4: Details on Data Analysis
+
+In Experiment 2 and 3, we estimated if the 95% credible interval of the posterior difference between ensemble types was in between -1.25% and 1.25% of the entire scale width.
+If this was the case, and the 95% credible interval would include 0, we would consider the effect precisely estimated and that it did not, in an important way, impact ensemble evaluation certainty.
+While the choice of the ROPE size was arbitrary, we included this ROPE to ensure that we would not over-interpret small effects when making claims about persistent effects of component certainty on ensemble certainty.
+If the 95% credible interval partly falls within the ROPE, but does not include 0, we consider the effect credible but too small to be a major contributor to ensemble evaluation certainty.
+If the 95% credible interval falls entirely outside the ROPE, we consider the effect a major contributor to ensemble evaluation certainty.
+Note that there is a mistake in the preregistration, incorrectly stating that the ROPE corresponds to a difference between zero-sum coded groups of 5% of the scale.
+However,  given the [-0.0125, 0.0125] ROPE this should be 2.5%, not 5%, as zero-sum coded estimates for two groups represent the group difference divided by two.
+For example, an estimate of 0.0125 corresponds to a group difference of 0.025 which is 2.5 percent of the scale.
+
+# Experiments 2 to 4: Ensemble Matching Manipulation Checks
+
+(ref:figureS2-caption) Overview of Basket-Matching Success in Experiments 2 to 4. Blue dots in each plot represent participant-wise average values. Green lines indicate participant-wise averages in line with plotted prediction, red contrary to prediction. Blue lines are used in plots where we expected no difference (i.e. for the variables that were matched). A: Experiment 2, average value positivity across positivity-matched baskets. B: Experiment 2, average component evaluation certainty across positivity-matched ensembles. C: Experiment 3, average value positivity across positivity-matched baskets. D: Experiment 3, average component evaluation certainty across positivity-matched ensembles. E: Experiment 3, average value extremity across extremity-matched baskets. F: Experiment 3, average component evaluation certainty across extremity-matched ensembles. G: Experiment 4, average value extremity across extremity-matched baskets. H: Experiment 4, average value SD across extremity-matched ensembles. I: Experiment 4, average value extremity across similarity-matched baskets. J: Experiment 4, average value SD across similarity-matched ensembles.  
+
+```{r figS2, fig.cap = "(ref:figureS2-caption)\\label{fig:figureS2}", warning=FALSE, message=FALSE, include = TRUE, echo = FALSE, fig.height=12, fig.width = 10}
+
+# Figure 2A (value matching in exp2)
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/013_brm_val_check_e2.R"))
+} else {
+    brm_val_exp2 <- readRDS(here::here("01_analyses/fitted_models/013_brm_val_check_e2.rds"))
+}
+
+d_val_exp2 <- plot(conditional_effects(brm_val_exp2, effects = "basket_cat_f"), plot = F)$basket_cat_f$data
+
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/014_brm_bconf_check_e2.R"))
+} else {
+    brm_bconf_exp2 <- readRDS(here::here("01_analyses/fitted_models/014_brm_bconf_check_e2.rds"))
+}
+
+d_bconf_exp2 <- plot(conditional_effects(brm_bconf_exp2, effects = "basket_cat_f"), plot = F)$basket_cat_f$data
+
+figS2a <- plot_categorical_effect(brm_val_exp2, pred = "basket_cat_f", outcome = "basket_value", title = " ", viol_width = 0.5, add_pred = TRUE, add_zoom = F, yname = "Avg. Value Positivity", xname = "Component Certainty Condition", cluster_name = "subject", line_preds = c(" "), x_ticks = c("High", "Low"), trunc_pred = TRUE, trunc_pred_max = 200, trunc_pred_min = 0, plot_equal_lines = TRUE)
+
+figS2b <- plot_categorical_effect(brm_bconf_exp2, pred = "basket_cat_f", outcome = "basket_conf", title = " ", viol_width = 0.5, add_pred = TRUE, add_zoom = F, yname = "Avg. Value Certainty", xname = "Component Certainty Condition", cluster_name = "subject", line_preds = c(">"), x_ticks = c("High", "Low"), trunc_pred = TRUE, trunc_pred_max = 200, trunc_pred_min = 0)
+
+
+# Experiment 2 value matching
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/015_brm_val_check_vmatch_e3.R"))
+} else {
+  brm_val_exp3_vmatch <- readRDS(here::here("01_analyses/fitted_models/015_brm_val_check_vmatch_e3.rds"))
+}
+
+d_val_exp3_vmatch <- plot(conditional_effects(brm_val_exp3_vmatch, effects = "basket_cat_f"), plot = F)$basket_cat_f$data
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/016_brm_bconf_check_vmatch_e3.R"))
+} else {
+  brm_bconf_exp3_vmatch <- readRDS(here::here("01_analyses/fitted_models/016_brm_bconf_check_vmatch_e3.rds"))
+}
+
+d_bconf_exp3_vmatch <- plot(conditional_effects(brm_bconf_exp3_vmatch, effects = "basket_cat_f"), plot = F)$basket_cat_f$data
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/017_brm_val_check_ematch_e3.R"))
+} else {
+  brm_val_exp3_ematch <- readRDS(here::here("01_analyses/fitted_models/017_brm_val_check_ematch_e3.rds"))
+}
+
+d_val_exp3_ematch <- plot(conditional_effects(brm_val_exp3_ematch, effects = "basket_cat_f"), plot = F)$basket_cat_f$data
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/018_brm_bconf_check_ematch_e3.R"))
+} else {
+  brm_bconf_exp3_ematch <- readRDS(here::here("01_analyses/fitted_models/018_brm_bconf_check_ematch_e3.rds"))
+}
+
+d_bconf_exp3_ematch <- plot(conditional_effects(brm_bconf_exp3_ematch, effects = "basket_cat_f"), plot = F)$basket_cat_f$data
+
+figS2c <- plot_categorical_effect(brm_val_exp3_vmatch, pred = "basket_cat_f", outcome = "basket_value_price", title = " ", viol_width = 0.5, add_pred = TRUE, add_zoom = F, yname = "Avg. Value Positivity", xname = "Component Certainty Condition", cluster_name = "subject_nr", line_preds = c(" "), x_ticks = c("High", "Low"), trunc_pred = TRUE, trunc_pred_max = 75, trunc_pred_min = 0, plot_equal_lines = TRUE)
+
+figS2e <- plot_categorical_effect(brm_bconf_exp3_vmatch, pred = "basket_cat_f", outcome = "basket_conf", title = " ", viol_width = 0.5, add_pred = TRUE, add_zoom = F, yname = "Avg. Value Certainty", xname = "Component Certainty Condition", cluster_name = "subject_nr", line_preds = c(">"), x_ticks = c("High Certainty", "Low Certainty"), trunc_pred = TRUE, trunc_pred_max = 200, trunc_pred_min = 0)
+
+figS2d <- plot_categorical_effect(brm_val_exp3_ematch, pred = "basket_cat_f", outcome = "basket_value_price_ex", title = " ", viol_width = 0.5, add_pred = TRUE, add_zoom = F, yname = "Avg. Value Extremity", xname = "Component Certainty Condition", cluster_name = "subject_nr", line_preds = c(" "), x_ticks = c("High", "Low"), trunc_pred = TRUE, trunc_pred_max = 37.5, trunc_pred_min = 0, plot_equal_lines = TRUE)
+
+figS2f <- plot_categorical_effect(brm_bconf_exp3_ematch, pred = "basket_cat_f", outcome = "basket_conf", title = " ", viol_width = 0.5, add_pred = TRUE, add_zoom = F, yname = "Avg. Value Certainty", xname = "Component Certainty Condition", cluster_name = "subject_nr", line_preds = c(">"), x_ticks = c("High", "Low"), trunc_pred = TRUE, trunc_pred_max = 200, trunc_pred_min = 0)
+
+
+if(fit_models == TRUE) {
+    source(here::here("01_analyses/model_fits/024_brm_val_check_ematch_e4.R"))
+} else {
+    brm_ex_exp4_ematch <- readRDS(here::here("01_analyses/fitted_models/024_brm_val_check_ematch_e4.rds"))
+}
+
+if(fit_models == TRUE) {
+    source(here::here("01_analyses/model_fits/025_brm_bconf_check_ematch_e4.R"))
+} else {
+    brm_sd_exp4_ematch <- readRDS(here::here("01_analyses/fitted_models/025_brm_bconf_check_ematch_e4.rds"))
+}
+
+if(fit_models == TRUE) {
+    source(here::here("01_analyses/model_fits/022_brm_val_check_sdmatch_e4.R"))
+} else {
+    brm_ex_exp4_sdmatch <- readRDS(here::here("01_analyses/fitted_models/022_brm_val_check_sdmatch_e4.rds"))
+}
+
+if(fit_models == TRUE) {
+    source(here::here("01_analyses/model_fits/023_brm_bconf_check_sdmatch_e4.R"))
+} else {
+    brm_sd_exp4_sdmatch <- readRDS(here::here("01_analyses/fitted_models/023_brm_bconf_check_sdmatch_e4.rds"))
+}
+
+
+figS2g <- plot_categorical_effect(brm_ex_exp4_ematch, pred = "basket_cat_f", outcome = "basket_value_price_ex", title = " ", viol_width = 0.5, add_pred = TRUE, add_zoom = F, yname = "Avg. Value Extremity", xname = "Value Extremity Condition", cluster_name = "subject_nr", line_preds = c("="), x_ticks = c("High", "Low"), trunc_pred = TRUE, trunc_pred_max = 75, trunc_pred_min = 0, plot_equal_lines = TRUE)
+
+figS2i <- plot_categorical_effect(brm_sd_exp4_ematch, pred = "basket_cat_f", outcome = "basket_rating_sd", title = " ", viol_width = 0.5, add_pred = TRUE, add_zoom = F, yname = "Avg. Value SD", xname = "Value Similarity Condition", cluster_name = "subject_nr", line_preds = c("<"), x_ticks = c("High", "Low"), trunc_pred = TRUE, trunc_pred_max = 75, trunc_pred_min = 0)+scale_y_continuous(breaks = seq(0,10, length.out = 11))
+
+figS2h <- plot_categorical_effect(brm_ex_exp4_sdmatch, pred = "basket_cat_f", outcome = "basket_value_price_ex", title = " ", viol_width = 0.5, add_pred = TRUE, add_zoom = F, yname = "Avg. Value Extremity", xname = "Value Extremity Condition", cluster_name = "subject_nr", line_preds = c(">"), x_ticks = c("High", "Low"), trunc_pred = TRUE, trunc_pred_max = 37.5, trunc_pred_min = 0)
+
+figS2j <- plot_categorical_effect(brm_sd_exp4_sdmatch, pred = "basket_cat_f", outcome = "basket_rating_sd", title = " ", viol_width = 0.5, add_pred = TRUE, add_zoom = F, yname = "Avg. Value SD", xname = "Value Similarity Condition", cluster_name = "subject_nr", line_preds = c("="), x_ticks = c("High", "Low"), trunc_pred = TRUE, trunc_pred_max = 75, trunc_pred_min = 0, plot_equal_lines = TRUE)+scale_y_continuous(breaks = seq(0,5, length.out = 11))
+
+((figS2a+figS2b)+(figS2c+figS2e))/((figS2d+figS2f)+(figS2g+figS2i))+((figS2h+figS2j))+plot_annotation(tag_levels = c("A"))
+
+```
+
+
+
+# Glossary of Statistical Terms
+
+- **Posterior Proportion (pp)**: Compared to a frequentist model, a Bayesian model does not only provide point estimates for effect sizes, but a full distribution of possible effect sizes, given the prior and the observed data. Here, the posterior proportion denoted as _pp_ is the proportion of the posterior distribution that falls in the opposite direction of the hypothesis, either above or below zero or above or below the ROPE (see below). For example, if the hypothesis is that the effect is positive, a _pp_ of 0.05 would indicate that 5% of the posterior distribution falls in the negative direction. While it might at first seem more intuitive to report the proportion of the posterior distribution that falls in the hypothesized direction, the _pp_ is more informative as it indicates the proportion of the posterior distribution that is in conflict with the hypothesis, and is therefore somewhat more closer in interpretation to p-values, though the two do not share the same interpretation. Yet, to further facilitate interpretation, we stick to conventional frequentist norms in the field of considering an effect credible when less than 2.5% of the posterior distribution falls in the opposite direction of the hypothesis (i.e. _pp_ < 0.025), to align with the conventional alpha level of 0.05 (i.e., one-sided 0.025) in frequentist statistics. 
+- **Prior** is a distribution that represents the researcher's beliefs about the effect size before observing the data. In Bayesian statistics, the prior is combined with the likelihood of the data to obtain the posterior distribution, which represents the researcher's beliefs about the effect size after observing the data. The prior can be informative or uninformative. An informative prior is a prior that is based on previous research or expert knowledge about the effect size. An uninformative prior is a prior that is based on little or no information about the effect size. In this study, we used uninformative priors for all analyses. While uninformative priors do not convey a lot of information and do not influence the posterior distribution much, they are useful for estimating complex models, as they can help to regularize the estimates and prevent overfitting.
+- **credible** is a term used in Bayesian statistics that denotes whether an effect is considered to be credible given the data and the prior. Here, an effect is considered credible if less than 2.5% of the posterior distribution falls in the opposite direction of the hypothesis. Bayesian estimates are usually accompanied by a credible interval or a Highest Posterior Density Interval (HPDI) that denotes a specific range of values (e.g. 95%), in which the true effect is likely to fall given the prior and observed data.
+- **Region of Practical Equivalence (ROPE)** is an approach that is comparable to equivalence testing in frequentist statistics. It is used to determine if an effect is practically equivalent to zero. In Bayesian statistics, the ROPE is defined as a range of values that are considered to be practically equivalent to zero. If the 95% credible interval of an effect falls entirely within the ROPE, the effect is considered to be practically equivalent to zero. If the 95% credible interval falls entirely outside the ROPE, the effect is considered to be practically different from zero. If the 95% credible interval partly falls within the ROPE, but does not include zero, the effect is considered to be credible but too small to be a major contributor to the outcome. 
+
+# Specifications of statistical models reported in the main text
+
+## Experiment 1
+
+- Main hypothesis test:
+
+
+\small
+
+```{r, e1_main, echo = TRUE, eval = FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+Family: beta_binomial 
+Links: mu = logit; phi = identity 
+Formula: ensemble_certainty | trials(200) ~ value_similarity_f * value_certainty_f + (1 + value_similarity_f * value_certainty_f | participant) 
+```
+
+\normalsize
+
+
+## Experiment 2
+
+- Main hypothesis test:
+
+
+\small
+
+```{r, e2_main, echo = TRUE, eval = FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+Family: beta_binomial 
+Links: mu = logit; phi = identity 
+Formula: ensemble_certainty | trials(200) ~ value_certainty_f + value_positivity_s + value_similarity_s + value_extremity_s + (1 + value_certainty_f + value_positivity_s + value_similarity_s + value_extremity_s | participant) + (1 | ensemble_id)
+```
+
+\normalsize
+
+
+- Within value-matched pair model:
+
+
+\small
+
+```{r, e2_diff, echo = TRUE, eval = FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+Family: student 
+Links: mu = identity; sigma = identity; nu = identity 
+Formula: ensemble_certainty_difference ~ value_extremity_s + value_certainty_f + value_similarity_s + (1 + value_extremity_s + value_certainty_f + value_similarity_s | participant) 
+```
+
+\normalsize
+
+
+## Experiment 3
+
+- Main hypothesis test (separately fit for ensembles matched on value positivity and extremity):
+
+
+\small
+
+```{r, e3_main, echo = TRUE, eval = FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+Family: beta_binomial 
+Links: mu = logit; phi = identity 
+Formula: ensemble_certainty | trials(200) ~ value_certainty_f + value_positivity_s + value_similarity_s + value_extremity_s + (1 + value_certainty_f + value_positivity_s + value_similarity_s + value_extremity_s | participant)
+```
+
+\normalsize
+
+
+- Within value-matched pair model (positivity-matched ensembles)
+
+
+\small
+
+```{r, e3_diff_pos, echo = TRUE, eval = FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+Family: student 
+Links: mu = identity; sigma = identity; nu = identity 
+Formula: ensemble_certainty_difference ~ value_extremity_s + value_certainty_f + value_similarity_s + (1 + value_extremity_s + value_certainty_f + value_similarity_s | participant) 
+```
+
+\normalsize
+
+
+- Within value-matched pair model (extremity-matched ensembles)
+
+
+\small
+
+```{r, e3_diff_ex, echo = TRUE, eval = FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+Family: student 
+Links: mu = identity; sigma = identity; nu = identity 
+Formula: ensemble_certainty_difference ~ value_positivity_s + value_certainty_f + value_similarity_s + (1 + value_positivity_s + value_certainty_f + value_similarity_s | participant) 
+```
+
+\normalsize
+
+
+- Model predicting correspondence between component and ensemble evaluations:
+
+
+\small
+
+```{r, e2_e3_corres, echo = TRUE, eval = FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+Family: lognormal 
+Links: mu = identity; sigma = identity 
+Formula: component_vs_ensemble_evaluation_difference ~ value_certainty_f * experiment_indicator + (1 + value_certainty_f | participant) + (1 | ensemble_id) 
+```
+
+\normalsize
+
+
+## Experiment 4
+
+- Main hypothesis test:
+
+
+\footnotesize
+
+
+```{r, e4_main, echo = TRUE, eval = FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+Family: beta_binomial 
+Links: mu = logit; phi = identity 
+Formula: ensemble_certainty | trials(200) ~ value_certainty_f * ensemble_matching_variable_f + 
+(1 + value_certainty_f * ensemble_matching_variable_f | participant) 
+```
+
+\normalsize
+
+The above model formulas are in brms / lme4 syntax.
+The `|` symbol indicates that the right-hand side of the formula is a grouping factor.
+The `*` symbol indicates that the right-hand side of the formula is an interaction term.
+The `+` symbol indicates that the right-hand side of the formula is an additive term.
+The `_s` suffix indicates that the variable is standardized.
+The `_f` suffix indicates that the variable is a sum-to-zero coded factorial variable.
+
+# Software overview
+
+We used the following software during programming, analyses and writing the paper:
+
+```{r, results = "asis", warning = FALSE}
+grateful::cite_packages(output = "paragraph", pkgs = "Session", out.dir=getwd())
+```
+
+# References

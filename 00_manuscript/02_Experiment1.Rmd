@@ -1,0 +1,373 @@
+# Experiment 1
+
+First, before applying the ensemble matching approach outlined in the introduction and displayed in Figure 1, we aimed to provide an empirical justification for investigating evaluation certainty in ensembles.
+Specifically, we wanted to investigate whether certainty in component evaluations (henceforth component certainty) would predict certainty in ensemble evaluations (henceforth ensemble certainty), analogous to previous findings on ensemble evaluations [@whitneyEnsemblePerception2018; @yamanashileibFleetingImpressionsEconomic2020].
+Second, we examined whether ensemble certainty would be driven by the consistency of between-component evaluations in the ensemble (henceforth between-component consistency).
+The rationale behind this is that during evaluation, ensembles with lower between-component consistency might be more difficult to evaluate, leading to lower certainty in the evaluation.
+As we were not mainly interested in these difficulty effects, we wanted to test whether beyond these effects, there would be a persistent effect of component certainty on ensemble certainty, as we would expect from integration of component certainty during ensemble evaluation.
+
+To investigate this, we created ensembles of items that varied in component certainty and between-component consistency.
+
+```{=latex}
+\begin{table}[tbp]
+\renewcommand{\arraystretch}{1.2} % Default value: 1
+\begin{center}
+\begin{threeparttable}
+
+
+
+\caption{\label{tab:table1_matching_manipulation_overview}Overview of matched and varied factors that are expected to influence ensemble certainty across the four Experiments.}
+
+\begin{tabular}{p{0.15\linewidth}p{0.25\linewidth}p{0.25\linewidth}m{0.15\linewidth}}
+\toprule
+Experiment & \multicolumn{1}{c}{Component Equalized Factor} & \multicolumn{1}{c}{Component Varied Factor } & \multicolumn{1}{c}{Matching Method }\\
+\midrule
+Experiment 1 & - & Evaluation Certainty  & 2-Step \mbox{Sorting}  \\
+& - & Between-Component \mbox{Consistency} &  \\ 
+\hline
+Experiment 2 & Value Positivity & Evaluation Certainty & K-Means \mbox{Clustering}\\
+\hline
+Experiment 3 & Value Positivity & Evaluation Certainty & K-Means \mbox{Clustering}\\
+& Value Extremity & Evaluation Certainty & \\ 
+\hline
+Experiment 4 & Value Extremity & Within-Component \mbox{Evaluation  Consistency} & K-Means \mbox{Clustering} \\
+& Within-Component \mbox{Evaluation  Consistency} & Value Extremity & \\
+\bottomrule
+\end{tabular}
+
+\end{threeparttable}
+\end{center}
+
+\end{table}
+
+
+```
+
+## Method
+
+### Transparency and Openness
+
+We report all data exclusions, manipulations, and measures in the study that were specified in the respective experiments' preregistrations.
+To comply with Transparency and Openness Promotion (TOP) guidelines, we share all data, materials, and analysis scripts on the Open Science Framework (OSF) under https://osf.io/9y38n/.
+The preregistrations for each specific study are available under the aforementioned link.
+The study protocol was approved by the Ethics Committee of the Faculty of Social Sciences of Radboud University, and all participants provided informed consent.
+The implemented experimental protocols are shared as jsPsych [@deleeuwJsPsychJavaScriptLibrary2015] program code, including dependencies, in the OSF repository.
+The analysis plan was followed as specified in the pregregistrations. 
+All exceptions to this are explicitly pointed out in the manuscript.
+The materials used in the experiments are also available in the program code folders on the OSF repository.
+No pre-existing data was used in this study. 
+All collected data was anonymized and is shared in the OSF repository, both as anonymized unprocessed data and processed data, including code-books and processing steps as R Markdown files.
+The manuscript is written in R Markdown using the papaja package [@austPapajaPrepareReproducible2020], and can be exactly reproduced by downloading the R Markdown file and the associated model fitting scripts from the OSF repository.
+The R Environment, including all package versions, is shared in the repository in form of an renv [@usheyRenvProjectEnvironments2025] lock-file, that can be used to reproduce the analysis environment.
+Further details about used software and analysis packages are provided in the Data Analysis section.
+
+### Participants
+
+We ran an a priori sensitivity analysis using the approach described in @westfallStatisticalPowerOptimal2014 taking 71 participants as the desired sample size based on budget constraints (preregistered), allowing us to detect effects of *d* =.47 and larger.
+We collected a sample of Dutch participants on Prolific (www.prolific.co).
+Due to technical problems, data of one participant were not correctly saved. 
+Nine additional participants were excluded according to preregistered exclusion criteria resulting in a final sample size of 61 participants (21 female, 39 male, 1 non-specified (free-response box); M_{age} = 27.20, SD_{age} = 7.91).
+
+### Materials and Procedures
+
+The stimulus material consisted of 60 pictures of fruits and vegetables that we considered to be well-known throughout various countries. 
+An overview of all items was presented prior to the evaluation task.
+
+#### Component Evaluation Task
+
+In the first task, 60 food items were presented to participants in a random order asking them to rate how much they would "like to receive this food".
+Even though the experiment was conducted online, and participants would not receive the vegetables or fruits for actual consumption, they were told to provide an answer based on their feeling of wanting to receive the food.
+After each evaluation, participants indicated their certainty in their evaluation.
+Both answers were assessed on a 0 = "not at all" to 200 = "very much" scale.
+Participants could skip evaluations for up to 10 items that they did not know.
+The number 10 here was chosen arbitrarily based on our assumption that people would know almost all the presented food items. 
+In line with this, only a single person skipped 10 items, with the median participant skipping 2 items.
+
+#### Food Ensemble Creation
+
+Food ensembles were created using a 2-step sorting algorithm (see Figure 2), and presented in the form of food baskets to participants.
+In step 1, for each participant, the items were ranked based on component certainty.
+After ranking, the items were divided into a low-certainty, medium-certainty, and high-certainty category.
+In the second step, the items within each of the three categories were ranked based on evaluations from the component item evaluation task and again divided into three categories: a low-value category, a medium-value category, and a high-value category.
+Using these categories, five ensembles of four different types were created, each including three items:
+
+1. _Low component certainty / Low between-component consistency ensembles_ including three items from the low-certainty item category from step 1: one low certainty / low value item, one low certainty / medium value item, and one low certainty / high value item, resulting in a high standard deviation across evaluations, and hence low consistency.
+2. _Low component certainty / High between-component consistency ensembles_ including three items from the low certainty category, but now including only low, medium, or high value items in a respective ensemble, resulting in a low standard deviation across evaluations, and hence high consistency.
+3. _High component certainty / Low between-component consistency ensembles_, which are identical to the ensembles under 1., but including only the high certainty items from sorting step 1.
+4. _High component certainty / High between-component consistency ensembles_ identical to 2., but only selecting high certainty items.
+
+#### Ensemble Evaluation Task
+
+In the second task, the 20 created ensembles were presented to participants in random order, with three repeated ratings, with the presentation position of items rotated in each rating to account for presentation order effects. 
+Participants were asked how much they would like to receive each ensemble and how certain they were in this assessment.
+
+(ref:figure2-caption) Schematic of the Ensemble creation procedure across experiments. Top-left: objects (food items in Experiment 1 and 2, retail items in Experiments 3 and 4) here depicted as letters, plotted by potential evaluations (x-axis) and evaluation certainty (y-axis). Right side, top to bottom: Experiment 1 involves ranking items by evaluation certainty, then creating ensembles based on certainty followed by between-component consistency, with example ensembles shown in the lower-right corner. Lower-left: Example ensembles from Experiments 2 to 4 use a clustering algorithm to form ensembles by clustering items within narrow value ranges (shaded areas), selecting value-matched high- and low-certainty items to create pairs. CEC = component evaluation certainty, BCC = between-component consistency.
+<!-- TODO: change figure -- again -->
+```{r fig2, fig.cap = "(ref:figure2-caption)\\label{fig:figure2}", warning=FALSE, message=FALSE, eval = TRUE, include = TRUE, out.width = 450}
+
+
+knitr::include_graphics(here::here("00_manuscript/figure2/figure2.png"))
+```
+
+### Data Analysis
+
+The data were analyzed using Bayesian linear mixed-effect models in the probabilistic programming language Stan [@carpenterStanProbabilisticProgramming2017; @gabryCmdstanrInterfaceCmdStan2021], using the brms package [@burknerBrmsPackageBayesian2017a] in R [version 4.4.2; @rcoreteamLanguageEnvironmentStatistical2021].
+As certainty rating data are often skewed [see @quandtConfidenceEvaluationsValuebased2022], we fitted a Beta-Binomial response distribution model (see supplemental materials). 
+To investigate the hypotheses that between-component consistency and component certainty would predict ensemble certainty, we predicted certainty in ensemble evaluations on a 200-point scale by the created component certainty and between-component consistency conditions. 
+Note that this is a deviation from the preregistration, where we planned to use component certainty and between-component consistency (as the standard deviation of evaluations of items in the ensemble) as numerical predictors instead of factorizing them.
+This deviation, and others that are discussed in the supplemental materials, were made for readability and conceptual clarity.
+The preregistered models were also run and did not differ in terms of conclusions.
+For formatting results and the entire manuscript, the papaja R package [@austPapajaPrepareReproducible2020] was used.
+As we report results of Bayesian models, instead of _p_-values we report posterior proportions (_pp_).
+For effects predicted to be positive, we report `r paste0("$","pp", "_{-}","$")`, the posterior proportion that is negative (i.e. opposite to the prediction), while reporting `r paste0("$","pp", "_{+}","$")`, the positive proportion of the posterior, for effects predicted to be negative.
+This makes reading these values somewhat similar to _p_-values, though their interpretation is not entirely equivalent (see glossary in supplemental materials).
+All reported Experiments were approved by the Ethics Committee of the Faculty of Social Sciences of Radboud University and all participants provided informed consent.
+The preregistrations of all Experiments, their materials, anonymized data, as well as the supplementary materials, can be found on the Open Science Framework (OSF) under https://osf.io/9y38n/.
+
+## Results
+
+```{r load_model_e1h1, include = FALSE, echo = FALSE}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/001_brm1_e1h1_BB_cat.R"))
+} else {
+  brm1_e1h1_BB_cat <- readRDS(here::here("01_analyses/fitted_models/001_brm1_e1h1_bb_cat.rds"))
+}
+
+```
+
+### Main Analyses
+
+We predicted (pre-registered) that high (vs. low) component certainty would positively predict ensemble certainty, and that high (vs. low) between-component consistency would also positively predict ensemble certainty.
+In line with this (see also Figure 3A), participants were more certain in their evaluations of ensembles with high-certainty components than low-certainty component ensembles (`r report_brm_apa(brm1_e1h1_BB_cat, "basket_confidence_cat_f1", "<", log_scale = TRUE)`).
+Similarly, high between-component consistency (`r report_brm_apa(brm1_e1h1_BB_cat, "basket_diversity_cat_f1", "<", log_scale = TRUE)`) resulted in higher ensemble certainty compared to low between-component consistency.
+A credible interaction between the predictors (`r report_brm_apa(brm1_e1h1_BB_cat, "basket_diversity_cat_f1:basket_confidence_cat_f1", "<", log_scale = TRUE)`) indicated that the differences in ensemble certainty were stronger on the component certainty dimension than on the between-component consistency dimension (see Figure 3A). 
+This result was corroborated by k-fold cross validation (reported in the supplemental materials) showing that component certainty provided better predictions of ensemble certainty than between-component consistency.
+
+### Exploratory Analyses: Including Value Positivity and Value Extremity
+
+```{r brm5_e1h1_bb_cat, echo = FALSE, warning = FALSE, message = FALSE}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/002_brm5_e1h1_BB_cat.R"))
+} else {
+  brm5_e1h1_BB_cat <- readRDS(here::here("01_analyses/fitted_models/002_brm5_e1h1_bb_cat.rds"))
+}
+
+
+```
+
+Next, we explored how the results would change if we included value positivity and value extremity as predictors of ensemble certainty, to get a first glance at whether these factors would contribute to ensemble certainty independently of component certainty.
+When including value positivity and value extremity as predictors, the results significantly changed. 
+There was no difference in ensemble certainty anymore between high vs. low component certainty ensembles (`r report_brm_apa(brm5_e1h1_BB_cat, "basket_confidence_cat_f1", "<", log_scale = FALSE)`), and no difference on ensemble certainty between high vs. low between-component consistency ensembles  (`r report_brm_apa(brm5_e1h1_BB_cat, "basket_diversity_cat_f1", "<", log_scale = FALSE)`).
+Instead, there were credible differences in ensemble evaluation certainty for value positivity (`r report_brm_apa(brm5_e1h1_BB_cat, "basket_value_s", "<", log_scale = FALSE)`), and value extremity (`r report_brm_apa(brm5_e1h1_BB_cat, "basket_value_ex_s", "<", log_scale = FALSE)`).
+
+```{r prepare_fig3, warning = FALSE, output = FALSE, message = FALSE, echo = FALSE, cache = FALSE}
+
+emm_brm1_e1h1_BB_cat <- emmeans::emmeans(brm1_e1h1_BB_cat, specs = ~ "basket_diversity_cat_f:basket_confidence_cat_f", regrid = "logit")
+emm_brm1_e1h1_BB_cat@post.beta <- plogis(emm_brm1_e1h1_BB_cat@post.beta)*200
+
+fig3a <- plot_categorical_effect(brm1_e1h1_BB_cat, pred = "basket_diversity_cat_f:basket_confidence_cat_f", outcome = "confidence", title = " ", viol_width = 0.5, add_pred = TRUE, add_zoom = F, yname = " ", xname = "Between-Component Cons. + Certainty", cluster_name = "subject", line_preds = c(">", " ", ">"), emm_precomp = emm_brm1_e1h1_BB_cat, int_var_cond = "basket_confidence_cat_f", x_ticks = c("High Cons.\nHigh Cert.", "High Cons.\nLow Cert.", "Low Cons.\nHigh Cert.", "Low Cons.\nLow Cert."), x_angle = 25, aspect_ratio = 1.2/1)
+
+fig3a <- fig3a+theme(plot.margin = unit(c(0, 0, 0, 0), "pt"), axis.title.x = element_text(face=c("bold")))
+
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/003_brm5_e2h1_BB.R"))
+} else {
+  brm5_e2h1_BB <- readRDS(here::here("01_analyses/fitted_models/003_brm5_e2h1_bb.rds"))
+}
+
+emm_plot_fig3b <- emmeans::emmeans(brm5_e2h1_BB, specs= ~ "basket_cat_f")
+emm_plot_fig3b@post.beta <- plogis(emm_plot_fig3b@post.beta)*200
+
+fig3b <- plot_categorical_effect(brm5_e2h1_BB, pred = "basket_cat_f", outcome = "confidence", title = "Experiment 2", viol_width = 0.5, add_pred = TRUE, add_zoom = F, yname = " ", xname = " ", cluster_name = "subject", line_preds = c(">"), emm_precomp = emm_plot_fig3b, x_ticks = c("High", "Low"), aspect_ratio = 2.5/1)+theme(plot.title = element_text(size = 10))
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/004_brm5_e3h1_BB_eval.R"))
+} else {
+  brm5_e3h1_BB_eval <- readRDS(here::here("01_analyses/fitted_models/004_brm5_e3h1_BB_eval.rds"))
+}
+
+emm_plot_fig3c <- emmeans::emmeans(brm5_e3h1_BB_eval, specs= ~ "basket_cat_f")
+emm_plot_fig3c@post.beta <- plogis(emm_plot_fig3c@post.beta)*200
+
+fig3c <- plot_categorical_effect(brm5_e3h1_BB_eval, pred = "basket_cat_f", outcome = "confidence", title = "Experiment 3", viol_width = 0.5, add_pred = TRUE, add_zoom = F, yname = " ", xname = " ", cluster_name = "subject_nr", line_preds = c(">"), emm_precomp = emm_plot_fig3c, x_ticks = c("High", "Low"), aspect_ratio = 2.5/1)+theme(plot.title = element_text(size = 10))
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/005_brm5_e3h1_BB_ex.R"))
+} else {
+  brm5_e3h1_BB_ex <- readRDS(here::here("01_analyses/fitted_models/005_brm5_e3h1_BB_ex.rds"))
+}
+
+emm_plot_fig3d <- emmeans::emmeans(brm5_e3h1_BB_ex, specs= ~ "basket_cat_f")
+emm_plot_fig3d@post.beta <- plogis(emm_plot_fig3d@post.beta)*200
+
+fig3d <- plot_categorical_effect(brm5_e3h1_BB_ex, pred = "basket_cat_f", outcome = "confidence", title = "Experiment 3", viol_width = 0.5, add_pred = TRUE, add_zoom = F, yname = " ", xname = "Component Certainty", cluster_name = "subject_nr", line_preds = c(">"), emm_precomp = emm_plot_fig3d, x_ticks = c("High", "Low"))+theme(plot.title = element_text(size = 10), aspect.ratio = 1.5/1, axis.title.x = element_text(face=c("bold")))
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/006_brm5_e4h1_BB_sd.R"))
+} else {
+  brm5_e4h1_BB_sd <- readRDS(here::here("01_analyses/fitted_models/006_brm5_e4h1_BB_sd.rds"))
+
+}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/007_brm5_e4h1_BB_ex.R"))
+} else {
+  brm5_e4h1_BB_ex <- readRDS(here::here("01_analyses/fitted_models/007_brm5_e4h1_BB_ex.rds"))
+}
+
+
+emm_brm5_e4h1_BB_ex <- emmeans::emmeans(brm5_e4h1_BB_ex, specs = ~ "basket_cat_f", regrid = "logit")
+emm_brm5_e4h1_BB_ex@post.beta <- plogis(emm_brm5_e4h1_BB_ex@post.beta)*200
+
+fig3e <- plot_categorical_effect(brm5_e4h1_BB_ex, pred = "basket_cat_f", outcome = "confidence", title = "Experiment 4", viol_width = 0.5, add_pred = TRUE, add_zoom = F, yname = " ", xname = "Within-Component Cons.", cluster_name = "subject_nr", line_preds = c(">"), emm_precomp = emm_brm5_e4h1_BB_ex, x_ticks = c("High", "Low"))+theme(plot.title = element_text(size = 10), aspect.ratio = 1.5/1, axis.title.x = element_text(face=c("bold")))
+
+emm_brm5_e4h1_BB_sd <- emmeans::emmeans(brm5_e4h1_BB_sd, specs = ~ "basket_cat_f", regrid = "logit")
+emm_brm5_e4h1_BB_sd@post.beta <- plogis(emm_brm5_e4h1_BB_sd@post.beta)*200
+
+fig3f <- plot_categorical_effect(brm5_e4h1_BB_sd, pred = "basket_cat_f", outcome = "confidence", title = "Experiment 4", viol_width = 0.5, add_pred = TRUE, add_zoom = F, yname = "", xname = "Value Extremity", cluster_name = "subject_nr", line_preds = c(">"), emm_precomp = emm_brm5_e4h1_BB_sd, x_ticks = c("High", "Low"))+theme(plot.title = element_text(size = 10), aspect.ratio = 1.5/1, axis.title.x = element_text(face=c("bold")))
+
+### prepare panels ###
+panel_a <- plot_grid(fig3a)+theme(plot.margin = unit(c(20, 0, 3, 1.5), "pt"),plot.background = element_rect(color = "black", size = 1))
+
+panel_b <- plot_grid(fig3b, fig3c, nrow=1)+theme(plot.margin = unit(c(3, 1.5, 3, -1), "pt"))
+panel_b_xlab = textGrob("Component Certainty", 
+                   gp=gpar(fontface="bold", fontsize=11))
+panel_b <- plot_grid(arrangeGrob(panel_b, bottom = panel_b_xlab))+theme(plot.margin = unit(c(3, 1.5, 3, -1), "pt"),plot.background = element_rect(color = "black", size = 1))
+
+panel_a_b <- plot_grid(panel_a, panel_b, nrow = 1, labels = c('A: Experiment 1', 'B: Positivity Matched'), rel_widths = c(1,1), hjust = -0.1, align = "h") +theme(plot.margin = unit(c(3, 1.5, 0, 1.5), "pt"))
+
+panel_c <- plot_grid(fig3d, fig3e, nrow=1)+theme(plot.margin = unit(c(15, 1.5, 0, 1.5), "pt"))+theme(plot.margin = unit(c(0, 1.5, 3, 1.5), "pt"),plot.background = element_rect(color = "black", size = 1))
+# panel_c <- plot_grid(panel_c, panel_c_xlab, ncol = 1, rel_heights = c(30,1))
+
+panel_d <- plot_grid(fig3f, nrow=1)+theme(plot.margin = unit(c(20, 1.5, 3, -1), "pt"),plot.background = element_rect(color = "black", size = 1))
+panel_c_d <- plot_grid(panel_c, panel_d, nrow = 1, labels = c('C: Extremity Matched', 'D: Consistency Matched '), rel_widths = c(2.1,1), hjust = -0.05, align = "h") +theme(plot.margin = unit(c(-1, 1.5, 3, 1.5), "pt"))
+
+panel_a_b_c_d <- plot_grid(
+  panel_a_b,
+ panel_c_d, 
+  nrow = 2, rel_heights = c(1.3,1)
+)
+
+panel_a_b_c_d_ylab <- textGrob("Ensemble Certainty", 
+                   gp=gpar(fontface="bold", fontsize=12), rot=90)
+panel_a_b_c_d <- plot_grid(arrangeGrob(panel_a_b_c_d, left = panel_a_b_c_d_ylab))
+
+# panel e (diff plots)
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/008_brm_diff_exp4_ex_student.R"))
+} else {
+  brm_diff_exp4_ex_student <- readRDS(here::here("01_analyses/fitted_models/008_brm_diff_exp4_ex_student.rds"))
+}
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/009_brm_diff_exp4_sd_student.R"))
+} else {
+  brm_diff_exp4_sd_student <- readRDS(here::here("01_analyses/fitted_models/009_brm_diff_exp4_sd_student.rds"))
+}
+
+
+
+desc_pars_diff_conf <- c("CC" = "basket_conf_diff_s > 0")
+desc_pars_diff_ex <- c("VE" = "basket_value_ex_diff_s > 0")
+desc_pars_diff_eval <- c("VP" = "basket_value_diff_s > 0")
+desc_pars_diff_sd <- c("BC.CON" = "-basket_value_sd_diff_s > 0")
+desc_pars_diff_rating_sd <- c("WC.CON" = "-basket_rating_sd_diff_s > 0")
+
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/010_brm_diff_exp2_student.R"))
+} else {
+  brm_diff_exp2_student <- readRDS(here::here("01_analyses/fitted_models/010_brm_diff_exp2_student.rds"))
+}
+
+
+hyp_e2_diff_conf <- hypothesis(brm_diff_exp2_student, desc_pars_diff_conf)
+hyp_e2_diff_ex <- hypothesis(brm_diff_exp2_student, desc_pars_diff_ex)
+hyp_e2_diff_sd <- hypothesis(brm_diff_exp2_student, desc_pars_diff_sd)
+hyp_e2_diff_sd$samples <- -hyp_e2_diff_sd$samples
+
+diffs_e2_plot <- plot_brm_hypotheses(hypothesis_list = list(hyp_e2_diff_conf, hyp_e2_diff_ex, hyp_e2_diff_sd), fill_colors = rep("grey", 3), dens_scale_factor = 1, x_min = -10, x_max = 10, label_size = 10)+theme(plot.margin = unit(c(12, 1.5, 3,1.5), "pt"), axis.title.x=element_blank(), axis.title.y = element_blank())+labs(title = element_text("Exp. 2: VP-Matched", size = 10))
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/011_brm_diff_exp3_eval_student.R"))
+} else {
+  brm_diff_exp3_eval_student <- readRDS(here::here("01_analyses/fitted_models/011_brm_diff_exp3_eval_student.rds"))
+}
+
+hyp_e3_eval_diff_conf <- hypothesis(brm_diff_exp3_eval_student, desc_pars_diff_conf)
+hyp_e3_eval_diff_ex <- hypothesis(brm_diff_exp3_eval_student, desc_pars_diff_ex)
+hyp_e3_eval_diff_sd <- hypothesis(brm_diff_exp3_eval_student, desc_pars_diff_sd)
+hyp_e3_eval_diff_sd$samples <- -hyp_e3_eval_diff_sd$samples
+
+diffs_e3_eval_plot <- plot_brm_hypotheses(hypothesis_list = list(hyp_e3_eval_diff_conf, hyp_e3_eval_diff_ex, hyp_e3_eval_diff_sd), fill_colors = rep("grey", 3), dens_scale_factor = 1, x_min = -25, x_max = 25, label_size = 10)+theme(plot.margin = unit(c(3, 1.5, 3,1.5), "pt"), axis.title.x=element_blank(), axis.title.y = element_blank())+labs(title = element_text("Exp. 3: VP-Matched", size = 10))
+
+if(fit_models == TRUE) {
+  source(here::here("01_analyses/model_fits/012_brm_diff_exp3_ex_student.R"))
+} else {
+  brm_diff_exp3_ex_student <- readRDS(here::here("01_analyses/fitted_models/012_brm_diff_exp3_ex_student.rds"))
+}
+
+
+hyp_e3_ex_diff_conf <- hypothesis(brm_diff_exp3_ex_student, desc_pars_diff_conf)
+hyp_e3_ex_diff_eval <- hypothesis(brm_diff_exp3_ex_student, desc_pars_diff_eval)
+hyp_e3_ex_diff_sd <- hypothesis(brm_diff_exp3_ex_student, desc_pars_diff_sd)
+hyp_e3_ex_diff_sd$samples <- -hyp_e3_ex_diff_sd$samples
+
+diffs_e3_ex_plot <- plot_brm_hypotheses(hypothesis_list = list(hyp_e3_ex_diff_conf, hyp_e3_ex_diff_eval, hyp_e3_ex_diff_sd), fill_colors = rep("grey", 3), dens_scale_factor = 2, x_min = -25, x_max = 25, label_size = 10)+theme(plot.margin = unit(c(3, 1.5, 3,1.5), "pt"), axis.title.x=element_blank(), axis.title.y = element_blank())+labs(title = "Exp. 3: VE-Matched")
+
+
+hyp_e4_ex_diff_sd_within <- hypothesis(brm_diff_exp4_ex_student, desc_pars_diff_rating_sd)
+hyp_e4_ex_diff_eval <- hypothesis(brm_diff_exp4_ex_student, desc_pars_diff_eval)
+hyp_e4_ex_diff_sd <- hypothesis(brm_diff_exp4_ex_student, desc_pars_diff_sd)
+hyp_e4_ex_diff_sd$samples <- -hyp_e4_ex_diff_sd$samples
+
+
+diffs_e4_ex_plot <- plot_brm_hypotheses(hypothesis_list = list(hyp_e4_ex_diff_sd_within, hyp_e4_ex_diff_eval, hyp_e4_ex_diff_sd), fill_colors = rep("grey", 3), dens_scale_factor = 2, x_min = -30, x_max = 30, label_size = 10)+theme(plot.margin = unit(c(3, 1.5, 3,1.5), "pt"), axis.title.x=element_blank(), axis.title.y = element_blank())+labs(title = element_text("Exp. 4: VE-Matched", size = 10))
+
+
+hyp_e4_sd_diff_ex <- hypothesis(brm_diff_exp4_sd_student, desc_pars_diff_ex)
+hyp_e4_sd_diff_eval <- hypothesis(brm_diff_exp4_sd_student, desc_pars_diff_eval)
+hyp_e4_sd_diff_sd <- hypothesis(brm_diff_exp4_sd_student, desc_pars_diff_sd)
+hyp_e4_sd_diff_sd$samples <- -hyp_e4_sd_diff_sd$samples
+
+
+diffs_e4_sd_plot <- plot_brm_hypotheses(hypothesis_list = list(hyp_e4_sd_diff_ex, hyp_e4_sd_diff_eval, hyp_e4_sd_diff_sd), fill_colors = rep("grey", 3), dens_scale_factor = 3, x_min = -30, x_max = 30, label_size = 10)+theme(plot.margin = unit(c(3, 1.5, 3,1.5), "pt"), axis.title.x=element_blank(), axis.title.y = element_blank(), plot.title = element_text(size = 11))+labs(title = element_text("Exp. 4: WC.CON-Matched"))
+
+panel_diff_eval <- plot_grid(diffs_e2_plot, diffs_e3_eval_plot, nrow = 1, labels = c("A"), align = "hv", rel_widths = c(1,1))
+panel_diff_ex <- plot_grid(diffs_e3_ex_plot,diffs_e4_ex_plot, nrow = 1, labels = c("B", " ", "C"))+theme(plot.margin = unit(c(0, 0, 0,0), "pt"))
+
+diff_eff_plots <- plot_grid(panel_diff_eval, panel_diff_ex, ncol = 1)
+
+diff_eff_plots_vert <- plot_grid(diffs_e2_plot, diffs_e3_eval_plot, diffs_e3_ex_plot,diffs_e4_ex_plot, diffs_e4_sd_plot, ncol = 1)+theme(plot.margin = unit(c(3, 1.5, 3, 1.5), "pt"),plot.background = element_rect(color = "black", size = 1))
+
+
+```
+
+(ref:figure3-caption)  Main Results of Experiments 1 (A), and 2 to 4 (B-D), presented by Ensemble Matching factors. B: Ensembles matched on value positivity. C: Ensembles matched on value extremity. D: Ensembles matched on within-component consistency. Blue dots represent ensemble certainty across ensembles pooled per participant. Black dots, error bars, and grey vertical densities represent model estimates of the condition mean, 95% credible interval, and posterior distribution respectively. Solid colored lines connect datapoints of individual participants and show whether the data are in line with predicted directions for a given participant (green: directionality in line with prediction; red: directionality not in line with prediction). Dashed lines indicate 95% Bayesian prediction intervals (i.e. interval in which 95% of out-of-sample observations are predicted to be observed). E: Model Estimates for predictors of models fitting the difference in ensemble certainty within matched pairs with densities representing posterior distributions with grey shaded area showing 95% credible intervals (CC = component certainty; VE = value extremity; VP = value positivity; BC.CON = between-component consistency; WC.CON = within-component consistency).
+
+```{r fig3, fig.cap = "(ref:figure3-caption)\\label{fig:figure3}", warning=FALSE, message=FALSE, include = TRUE, echo = FALSE, cache = FALSE, fig.height=8, fig.width =10, dev="pdf", dev.args=list(encoding="CP1253.enc")}
+plot_grid(panel_a_b_c_d, diff_eff_plots_vert, labels = c(" ", "E"), rel_widths = c(4,1))
+```
+
+## Discussion
+
+Experiment 1 demonstrates that ensemble perception effects [@whitneyEnsemblePerception2018; @yamanashileibFleetingImpressionsEconomic2020] generalize to the domain of evaluation certainty, complimenting previous literature showing that certainty in specific attributes of objects independently contributes to overall certainty [@leeValueCertaintyChoice2023].
+Moreover, these effects extend beyond integration difficulty of component values, as the effect of component certainty on ensemble certainty was stronger than the effect of between-component consistency. 
+Together, these results suggest that ensemble certainty is integrated from component certainties.
+
+However, the question remains what drives the effect of component certainty on ensemble certainty.
+Without experimentally equalizing value positivity and extremity, we cannot be sure that component certainty directly determined ensemble certainty or whether there is a confounder that determines this relation, such as value positivity or value extremity. 
+
+In Experiment 1, when including value positivity and value extremity as predictors, there was no remaining effect of component certainty and between-component consistency, which could suggest that these effects are confounded.
+While we did not find statistical evidence for multicollinearity to support a confounded relation (all VIFs < 2), making arguments about causal relations based on statistical changes when including additional predictors in a model is difficult and often problematic [@Westfall2016]. 
+This is exactly why it is important to experimentally disentangle the individual contribution of potential factors that could drive the effect of component certainty on ensemble certainty. 
+
+Hence, in Experiments 2 and 3, we equalized the value positivity and value extremity of the items in the ensembles but varied component certainty.
+This allows for directly probing the persistence of component certainty effects on ensemble certainty, even after experimentally removing any potential effect of value positivity and value extremity. 
+Additionally, we hypothesized that one important contributor to evaluation certainty could be the consistency of value-relevant evidence, which would be sampled during the evaluation process.
+Such a relation has, for example, been demonstrated by @leeValueCertaintyChoice2023, who found that evaluation certainty was higher for objects that were rated on multiple dimensions, when evaluations across the dimensions were more consistent. 
+Hence, in Experiment 4, we investigated whether, similar to component certainty, the consistency of repeated evaluations _within_ each component would directly predict ensemble certainty, even when equalizing value extremity.

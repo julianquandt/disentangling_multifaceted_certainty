@@ -1,0 +1,1424 @@
+---
+title: "Experiment 2 - Power Simulation"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    code_download: true
+    code_folding: hide
+    hightlight: github
+    theme: united
+    css: "../../style/style.css"
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    includes:
+      in_header: "../../style/header.html"
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../data_codebook/") })
+---
+
+```{r setup, include=FALSE}
+require(knitr)
+knitr::opts_chunk$set(echo = T, warning = F, cache = F)
+options(width = 80)
+options(scipen = 10)
+source(here::here("01_analyses/00_functions/00_init_scripts.R"))
+# source("../helper_functions/osf_auth.R") # this line has to be commented out when reproducing this
+source(here::here("01_analyses/00_functions/01_rmd_helpers.R"))
+source(here::here("01_analyses/00_functions/03_data_helpers.R"))
+
+n_cores = 4
+n_chains = 4
+n_threading = 3
+n_iter = 8000
+n_warmup = 4000
+reloo_max = 0
+eval_run = FALSE
+```
+
+# Part I - Using Evaluations to create matched baskets with hierarchical clustering
+
+## Load Single Evaluation Data
+
+Data needs to be loaded from OSF
+
+```{r load_single_data}
+osf_node <- osf_retrieve_node("9y38n") # retrieve OSF node
+osf_datafolder <- osf_ls_files(osf_node, path = "processed_data", n_max = Inf) # get data folder
+single_conf_data <- osf_load_file(
+  osf_datafolder$id[osf_datafolder$name == "single_conf_data_exp1.csv"], 
+  "single_conf_data_exp1.csv", stringsAsFactors = F) # load file
+```
+
+
+Preregistered Exclusion criteria will be applied and relevant variables centered and standardized.
+
+```{r apply_exclusion_single}
+single_conf_data_prereg <- droplevels(subset(single_conf_data, 
+                                             prereg_exclusion == 0 & evaluation != -999 & confidence != -999))
+
+single_conf_data_prereg <- standardize_vars(single_conf_data_prereg, 
+                                            vars = c("confidence_mean", 
+                                                     "value_sd", "rep_nr", "evaluation"))
+
+#and subject
+single_conf_data_prereg$subject <- as.factor(single_conf_data_prereg$subject)
+
+#rescale confidence ratings to between 0 and 1 to make the model easier to estimate for e.g. zoib model
+single_conf_data_prereg$confidence_01 <- (single_conf_data_prereg$confidence - min(single_conf_data_prereg$confidence,na.rm = T))/
+  (max(single_conf_data_prereg$confidence,na.rm=T) - min(single_conf_data_prereg$confidence,na.rm = T))
+
+single_conf_data_prereg$evaluation_01 <- (single_conf_data_prereg$evaluation - min(single_conf_data_prereg$evaluation,na.rm = T))/
+  (max(single_conf_data_prereg$evaluation,na.rm=T) - min(single_conf_data_prereg$evaluation,na.rm = T))
+
+```
+
+The chunk below shows how the baskets created through clustering. 
+
+First, we take subsets for each participant and create a number of clusters `k` that is based on the number of rows in the original data divided by 6, so that for 60 item ratings there would be 10 clusters of 6 items (i.e. 2 baskets) each. 
+Second, clusters with less than 6 members are discarded and the remaining clusters are sorted on confidence.
+Third, the sorted clusters are divided into 2 baskets: 1 high-confidence basket including the highest-confidence items in the cluster, and one low-confidence basket containing the lowest 3 items. 
+This gives the data-set `data_with_baskets_b1max`.
+
+```{r cluster_example}
+
+
+data_with_baskets <- NULL
+
+for(j in levels(single_conf_data_prereg$subject)){
+  
+  tmp_sub <- subset(single_conf_data_prereg, subject == j) # subset participant
+  tmp_k <- floor(nrow(tmp_sub)/6) # number of clusters based on nrow/6 (i.e. number of items in 2 baskets)
+
+  d <- dist(tmp_sub$evaluation_01, method = "euclidean") # distance matrix
+  fit <- hclust(d, method="average") # fit the clustering
+  groups <- cutree(fit, k=tmp_k) # cut tree into tmp_k clusters
+  tmp_sub$cluster_hierarchical <- unname(unlist(groups)) # vectorize cluster and make var in dataframe
+  tmp_sub$cluster_size <- unname(unlist(table(groups)))[tmp_sub$cluster_hierarchical] # save cluster size
+  tmp_sub_valid <- subset(tmp_sub, cluster_size >= 6) # save valid clusters with at least 6 items
+
+  
+  for(i in unique(tmp_sub_valid$cluster_hierarchical)){
+  
+    tmp_sorted_cluster <- subset(tmp_sub_valid, cluster_hierarchical == i) # subset cluster
+    tmp_sorted_cluster <- tmp_sorted_cluster[order(tmp_sorted_cluster$confidence_01),] # order by confidence
+    tmp_sorted_cluster$basket <- rep(NA) # create empty basket var
+     
+    tmp_nrow <- nrow(tmp_sorted_cluster) # save the current row number for filling basket var
+    tmp_nrow_ceiling = ceiling(tmp_nrow/3)*3 # save next nrow%%3=0 to get valid basket sizes
+    nrow_new_baskets <- sapply(1:tmp_nrow_ceiling, function(x) ceiling(x/3)) # assign baskets for nrow%%3 set
+    
+    for(i in 1:tmp_nrow){
+      if(i < (tmp_nrow/2)){
+        tmp_sorted_cluster$basket[i] <- ceiling(i/3) # assign first half of data set with i/3 for each basket
+      } else {
+        tmp_sorted_cluster$basket[i] <- nrow_new_baskets[i+(tmp_nrow_ceiling-tmp_nrow)] # assign upper half based on nrow%%3
+      }
+    }
+    data_with_baskets <- rbind(data_with_baskets, tmp_sorted_cluster) # save to data frame
+  }
+}
+
+
+# create dataset with low/high baskets based on lowest and highest basket in each cluster per person
+data_with_baskets_b1max <- NULL
+
+for(i in unique(data_with_baskets$subject)){
+  
+  tmp_sub <- droplevels(subset(data_with_baskets, subject == i))
+
+  for(k in unique(tmp_sub$cluster_hierarchical)){
+    
+    baskets_sub <- droplevels(subset(tmp_sub, cluster_hierarchical == k))
+    max_basket <- max(baskets_sub$basket)
+    baskets_sub <- droplevels(subset(baskets_sub, basket == 1 | basket == max_basket))
+    data_with_baskets_b1max <- rbind(data_with_baskets_b1max, baskets_sub)
+  }
+  
+  
+  
+}
+
+
+# make sum-to-zero factor variable from basket
+data_with_baskets_b1max$basket_f <- ifelse(data_with_baskets_b1max$basket == 1, -1, 1)
+data_with_baskets_b1max$basket_f <- factor(data_with_baskets_b1max$basket_f, levels = c(1,-1))
+contrasts(data_with_baskets_b1max$basket_f) <- contr.sum(2)
+
+# aggregate per basket
+data_with_baskets_b1max_aggr <- ddply(data_with_baskets_b1max, .(subject, cluster_hierarchical, basket_f), summarize, 
+                                      value_sd = sd(evaluation), value_mean = mean(evaluation), 
+                                      confidence_mean = mean(confidence), confidence_mean_01 = mean(confidence_01), 
+                                      value_mean_01 = mean(evaluation_01), confidence_01 = mean(confidence_01))
+
+# remove possible NA-values if there is a basket that has no evaluation SD (sd(evaluation above == NaN))
+data_with_baskets_b1max_aggr <- na.exclude(data_with_baskets_b1max_aggr)
+
+# standardize variables
+data_with_baskets_b1max_aggr <- standardize_vars(data_with_baskets_b1max_aggr, vars = c("value_mean", "value_sd"))
+
+nrow(data_with_baskets_b1max_aggr)/length(unique(data_with_baskets_b1max_aggr$subject))
+
+table(data_with_baskets_b1max_aggr$subject)
+```
+
+```{r plot_example_cluster}
+j = 6
+tmp_sub <- subset(single_conf_data_prereg, subject == j) # subset participant
+  tmp_k <- floor(nrow(tmp_sub)/6) # number of clusters based on nrow/6 (i.e. number of items in 2 baskets)
+
+  d <- dist(tmp_sub$evaluation_01, method = "euclidean") # distance matrix
+  fit <- hclust(d, method="average") # fit the clustering
+  groups <- cutree(fit, k=tmp_k) # cut tree into tmp_k clusters
+
+ggplot(tmp_sub, aes(evaluation_01, confidence_01)) + geom_point(col = groups)
+
+```
+
+The above plot shows an example of how the clusters look for one of the participants.
+
+## Validate that it worked
+
+Functionalizing the above, we will test how, if we shuffle the data, the algorithm handles to create matched-value baskets with varying confidence in each cluster using the function `check_baskets`.
+
+```{r validate_algorithm}
+
+generate_design <- function(n_subj, n_stim){
+  
+  v_subj <- sample(1:1e6, n_subj)
+  v_stim <- 1:n_stim
+  
+  d_tmp <- expand.grid(subject = v_subj, stim_name = v_stim, confidence_01 = rep(-999), evaluation_01 = rep(-999), KEEP.OUT.ATTRS = FALSE)
+  pred_scalehalf <- predict(brm_scalehalf_sim, newdata = d_tmp, summary=FALSE, nsamples=1, allow_new_levels = TRUE)
+  d_tmp$conf_scalehalf <- pred_scalehalf[1, 1:nrow(d_tmp), 2]
+  d_tmp$eval_scalehalf <- pred_scalehalf[1, 1:nrow(d_tmp), 1]
+  return(d_tmp)
+  
+}
+
+shuffle_data_b1max <- function(dat, method = c("shuffle", "simulate", "random"), n_subj = 60, n_stim = 60){
+  
+  if(method %in% c("shuffle", "random")){
+    dat$subject_original <- dat$subject  # shuffle subjects
+    dat$subject <- sample(dat$subject_original, replace = FALSE)
+  } else if(method == "simulate"){
+    dat <- generate_design(n_subj, n_stim)
+    pred_IVs <- predict(brm_IV_sim, newdata = dat, summary=FALSE, nsamples=1, allow_new_levels = TRUE)
+    dat$confidence_01 <- pred_IVs[1, 1:nrow(dat), 2]
+    dat$evaluation_01 <- pred_IVs[1, 1:nrow(dat), 1]
+    dat$evaluation <- round(dat$evaluation_01*200)
+    dat$confidence <- round(dat$confidence_01*200)
+  }
+
+  data_with_baskets <- NULL
+  
+  for(j in unique(dat$subject)){
+    
+    tmp_sub <- subset(dat, subject == j) # subset participant
+    tmp_k <- floor(nrow(tmp_sub)/6) # number of clusters based on nrow/6 (i.e. number of items in 2 baskets)
+    if(method == "random"){
+      tmp_sub$evaluation_01 <- runif(nrow(tmp_sub), 0,1)
+    }
+    d <- dist(tmp_sub$evaluation_01, method = "euclidean") # distance matrix
+    fit <- hclust(d, method="average") # fit the clustering
+    groups <- cutree(fit, k=tmp_k) # cut tree into tmp_k clusters
+    tmp_sub$cluster_hierarchical <- unname(unlist(groups)) # vectorize cluster and make var in dataframe
+    tmp_sub$cluster_size <- unname(unlist(table(groups)))[tmp_sub$cluster_hierarchical] # save cluster size
+    tmp_sub_valid <- subset(tmp_sub, cluster_size >= 6) # save valid clusters with at least 6 items
+  
+    
+    for(i in unique(tmp_sub_valid$cluster_hierarchical)){
+    
+      tmp_sorted_cluster <- subset(tmp_sub_valid, cluster_hierarchical == i) # subset cluster
+      tmp_sorted_cluster <- tmp_sorted_cluster[order(tmp_sorted_cluster$confidence_01),] # order by confidence
+      tmp_sorted_cluster$basket <- rep(NA) # create empty basket var
+       
+      tmp_nrow <- nrow(tmp_sorted_cluster) # save the current row number for filling basket var
+      tmp_nrow_ceiling = ceiling(tmp_nrow/3)*3 # save next nrow%%3=0 to get valid basket sizes
+      nrow_new_baskets <- sapply(1:tmp_nrow_ceiling, function(x) ceiling(x/3)) # assign baskets for nrow%%3 set
+      
+      for(i in 1:tmp_nrow){
+        if(i < (tmp_nrow/2)){
+          tmp_sorted_cluster$basket[i] <- ceiling(i/3) # assign first half of data set with i/3 for each basket
+        } else {
+          tmp_sorted_cluster$basket[i] <- nrow_new_baskets[i+(tmp_nrow_ceiling-tmp_nrow)] # assign upper half based on nrow%%3
+        }
+      }
+      data_with_baskets <- rbind(data_with_baskets, tmp_sorted_cluster) # save to data frame
+    }
+  }
+  
+  
+  # create dataset with low/high baskets based on lowest and highest basket in each cluster per person
+  
+  
+  data_with_baskets_b1max <- NULL
+  
+  for(i in unique(data_with_baskets$subject)){
+    
+    tmp_sub <- droplevels(subset(data_with_baskets, subject == i))
+    if(nrow(tmp_sub) < 3){
+      stop(paste0("subject", i))
+    }
+    
+    for(k in unique(tmp_sub$cluster_hierarchical)){
+      
+      baskets_sub <- droplevels(subset(tmp_sub, cluster_hierarchical == k))
+      max_basket <- max(baskets_sub$basket)
+      baskets_sub <- droplevels(subset(baskets_sub, basket == 1 | basket == max_basket))
+      data_with_baskets_b1max <- rbind(data_with_baskets_b1max, baskets_sub)
+    }
+    
+    
+    
+  }
+  
+  
+  
+
+  data_with_baskets_b1max$basket_f <- ifelse(data_with_baskets_b1max$basket == 1, -1, 1)
+
+  
+  data_with_baskets_b1max_aggr <- ddply(data_with_baskets_b1max, .(subject, cluster_hierarchical, basket_f), summarize, value_sd = sd(evaluation), value_sd_01 = sd(evaluation_01), value_mean = mean(evaluation), confidence_mean = mean(confidence), confidence_mean_01 = mean(confidence_01), value_mean_01 = mean(evaluation_01))
+  
+  data_with_baskets_b1max_aggr <- standardize_vars(data_with_baskets_b1max_aggr, vars = c("value_mean", "confidence_mean", "value_sd", "value_mean_01", "confidence_mean_01", "value_sd_01"))
+  
+
+  if((nrow(data_with_baskets_b1max_aggr)*3) != nrow(data_with_baskets_b1max)){
+    print(paste0("wrong set: ", i))
+
+  }
+  
+  return(data_with_baskets_b1max_aggr)
+  
+}
+
+check_baskets <- function(shuffled_data_list){
+  
+  
+  tt_dat <- NULL
+
+  for(i in 1:length(shuffled_data_list)){
+    
+    tmp_dat <- shuffled_data_list[[i]]
+    tmp_mean_conf_high <- tmp_mean_conf_low <- tmp_conf_diff <- tmp_mean_eval_high <- 
+      tmp_mean_eval_low <- tmp_eval_diff <- tmp_pval_conf <- tmp_pval_eval <- 
+      tmp_nrow_prop <- c()
+
+    
+    for(j in 1:length(unique(tmp_dat$subject))){
+      tmp_sub <- droplevels(subset(tmp_dat, subject == tmp_dat$subject[j]))
+      tmp_mean_conf_high[j] <- mean(tmp_sub$confidence_mean_01[which(tmp_sub$basket_f == 1)])
+      tmp_mean_conf_low[j] <- mean(tmp_sub$confidence_mean_01[which(tmp_sub$basket_f == -1)])
+      tmp_conf_diff[j] <-  mean(tmp_sub$confidence_mean_01[which(tmp_sub$basket_f == 1)])-mean(tmp_sub$confidence_mean_01[which(tmp_sub$basket_f == -1)])
+      
+      tmp_mean_eval_high[j] <- mean(tmp_sub$value_mean_01[which(tmp_sub$basket_f == 1)])
+      tmp_mean_eval_low[j] <- mean(tmp_sub$value_mean_01[which(tmp_sub$basket_f == -1)])
+      tmp_eval_diff[j] <-  mean(tmp_sub$value_mean_01[which(tmp_sub$basket_f == 1)])-mean(tmp_sub$value_mean_01[which(tmp_sub$basket_f == -1)])
+      
+      tmp_pval_conf[j] <- tryCatch({
+        round(with(tmp_sub, t.test(confidence_mean_01 ~ basket_f))$p.val, 5)}, error=function(e){NA}
+        )
+      tmp_pval_eval[j] <-  tryCatch({
+        round(with(tmp_sub, t.test(value_mean_01 ~ basket_f))$p.val, 5)}, error=function(e){NA}
+        )
+    }
+    
+    tt_dat$mean_conf_high[i] <- mean(tmp_dat$confidence_mean_01[which(tmp_dat$basket_f == 1)])
+    tt_dat$mean_conf_low[i] <- mean(tmp_dat$confidence_mean_01[which(tmp_dat$basket_f == -1)])
+    tt_dat$conf_diff[i] <-  mean(tmp_dat$confidence_mean_01[which(tmp_dat$basket_f == 1)])-mean(tmp_dat$confidence_mean_01[which(tmp_dat$basket_f == -1)])
+    #
+    tt_dat$mean_eval_high[i] <- mean(tmp_dat$value_mean_01[which(tmp_dat$basket_f == 1)])
+    tt_dat$mean_eval_low[i] <- mean(tmp_dat$value_mean_01[which(tmp_dat$basket_f == -1)])
+    tt_dat$eval_diff[i] <-  mean(tmp_dat$value_mean_01[which(tmp_dat$basket_f == 1)])-mean(tmp_dat$value_mean_01[which(tmp_dat$basket_f == -1)])
+
+    tt_dat$pval_conf[i] <- round(with(tmp_dat, t.test(confidence_mean_01 ~ basket_f))$p.val, 5)
+    tt_dat$pval_eval[i] <- round(with(tmp_dat, t.test(value_mean_01 ~ basket_f))$p.val, 5)
+    
+    tt_dat$nrow_prop[i] <- round(nrow(tmp_dat)/(3505/3), 2)
+
+    
+    tt_dat$mean_conf_high_MIN[i] <- min(tmp_mean_conf_high)
+    tt_dat$mean_conf_high_MEAN[i] <- mean(tmp_mean_conf_high)
+    tt_dat$mean_conf_high_MED[i] <- median(tmp_mean_conf_high)
+    tt_dat$mean_conf_high_MAX[i] <- max(tmp_mean_conf_high)
+    
+    tt_dat$mean_conf_low_MIN[i] <- min(tmp_mean_conf_low)
+    tt_dat$mean_conf_low_MEAN[i] <- mean(tmp_mean_conf_low)
+    tt_dat$mean_conf_low_MED[i] <- median(tmp_mean_conf_low)
+    tt_dat$mean_conf_low_MAX[i] <- max(tmp_mean_conf_low)
+    
+    tt_dat$conf_diff_MIN[i] <- min(tmp_eval_diff)
+    tt_dat$conf_diff_MEAN[i] <- mean(tmp_eval_diff)
+    tt_dat$conf_diff_MED[i] <- median(tmp_eval_diff)
+    tt_dat$conf_diff_MAX[i] <- max(tmp_eval_diff)
+    
+    tt_dat$mean_eval_high_MIN[i] <- min(tmp_mean_eval_high)
+    tt_dat$mean_eval_high_MEAN[i] <- mean(tmp_mean_eval_high)
+    tt_dat$mean_eval_high_MED[i] <- median(tmp_mean_eval_high)
+    tt_dat$mean_eval_high_MAX[i] <- max(tmp_mean_eval_high)
+    
+    tt_dat$mean_eval_low_MIN[i] <- min(tmp_mean_eval_low)
+    tt_dat$mean_eval_low_MEAN[i] <- mean(tmp_mean_eval_low)
+    tt_dat$mean_eval_low_MED[i] <- median(tmp_mean_eval_low)
+    tt_dat$mean_eval_low_MAX[i] <- max(tmp_mean_eval_low)
+    
+    
+    tt_dat$eval_diff_MIN[i] <- min(tmp_eval_diff)
+    tt_dat$eval_diff_MEAN[i] <- mean(tmp_eval_diff)
+    tt_dat$eval_diff_MED[i] <- median(tmp_eval_diff)
+    tt_dat$eval_diff_MAX[i] <- max(tmp_eval_diff)
+    
+    tt_dat$pval_conf_MIN[i] <- min(tmp_pval_conf)
+    tt_dat$pval_conf_MEAN[i] <- mean(tmp_pval_conf)
+    tt_dat$pval_conf_MED[i] <- median(tmp_pval_conf)
+    tt_dat$pval_conf_MAX[i] <- max(tmp_pval_conf)
+    
+    tt_dat$pval_eval_MIN[i] <- min(tmp_pval_eval)
+    tt_dat$pval_eval_MEAN[i] <- mean(tmp_pval_eval)
+    tt_dat$pval_eval_MED[i] <- median(tmp_pval_eval)
+    tt_dat$pval_eval_MAX[i] <- max(tmp_pval_eval)
+    
+  }
+  
+  return(as.data.frame(tt_dat))
+}
+```
+
+### Performance in shuffled data.
+
+First, we will see what happens if we just shuffle the original data.
+
+```{r shuffled_data_test, results=F}
+shuffled_data_list_b1max <- list()
+start_time <- Sys.time()
+cl <- makeCluster(rep("localhost", 10), outfile="mylog.txt")
+clusterEvalQ(cl, c(library("plyr")))
+clusterExport(cl, list("shuffle_data_b1max"))
+registerDoParallel(cl)
+start_time <- Sys.time()
+set.seed(123)
+shuffled_data_list_b1max <- foreach(i = 1:100) %dorng% {
+  if(i%%10 == 0){
+    print(i)
+  }
+  return(shuffle_data_b1max(single_conf_data_prereg, method = "shuffle"))
+} 
+end_time <- Sys.time()
+stopCluster(cl)
+print(end_time-start_time)
+
+
+check_basket_data_b1max_shuffle <- check_baskets(shuffled_data_list_b1max)
+```
+
+If we shuffle the participant numbers so that we get the ratings in the original data get assigned to different participants, we see the following pattern:
+
+__Performance on Confidence__
+
+We can check for each simulation whether the median basket-confidence in the high-confidence condition is indeed higher than the low-confidence baskets'.
+
+
+```{r t.test_shuffle_conf, options}
+with(check_basket_data_b1max_shuffle, t.test(mean_conf_high_MED, mean_conf_low_MED, paired = T))
+```
+
+There seems to be difference of around 0.24 on the 0-1 scale or 48 points (on a 200-point scale) here which is good.
+
+__Performance on Evaluation__
+
+We can check the same for the evaluations instead of confidence, which we would like to be equal.
+
+```{r t.test_shuffle_eval, options}
+with(check_basket_data_b1max_shuffle, t.test(mean_eval_high_MED, mean_eval_low_MED, paired = T))
+```
+
+The overall difference is significant here, but rather small, showing a basket difference of only around 0.005 points in evaluation between the median of the high-confidence and low-confidence condition, which is a good sign of the value-matching by clustering working well.
+
+
+__Participant-wise performance__
+
+We can also check whether for each participant seperately, there was a difference in the confidence and evaluations, instead of checking whether the overall means are different across shuffled data-sets.
+
+For confidence we find:
+
+```{r t.test_shuffle_conf_within, options}
+with(check_basket_data_b1max_shuffle, t.test(pval_conf, mu = 0.05, alternative = "less"))
+```
+
+
+We see that the average p-value is 0 with not a single value being significant and the biggest value being `r max(check_basket_data_b1max_shuffle$pval_conf)`.
+
+
+```{r t.test_shuffle_eval_within, options}
+with(check_basket_data_b1max_shuffle, t.test(pval_eval, mu = 0.05, alternative = "less"))
+```
+
+
+We see that the average p-value is around .85 with not a single value being significant and the smallest value being `r min(check_basket_data_b1max_shuffle$pval_eval)`.
+
+
+### Performance in random uniform data.
+
+Next we will check how the algorithm performs with uniform random data from the 0-1 interval.
+
+```{r random_data_test, echo=F, output = F, message=F, warning=F, results = "hide"}
+#### random numbers ####
+random_data_list_b1max <- list()
+start_time <- Sys.time()
+cl <- makeCluster(rep("localhost", 10), outfile="mylog.txt")
+clusterEvalQ(cl, c(library("plyr")))
+clusterExport(cl, list("shuffle_data_b1max"))
+registerDoParallel(cl)
+start_time <- Sys.time()
+set.seed(456)
+random_data_list_b1max <- foreach(i = 1:100) %dorng% {
+  if(i%%10 == 0){
+    print(i)
+  }
+  return(shuffle_data_b1max(single_conf_data_prereg, method = "random"))
+} 
+end_time <- Sys.time()
+stopCluster(cl)
+print(end_time-start_time)
+
+
+check_basket_data_b1max_random <- check_baskets(random_data_list_b1max)
+```
+
+
+__Performance on Confidence__
+
+We can check for each simulation whether the median basket-confidence in the high-confidence condition is indeed higher than the low-confidence baskets'.
+
+
+
+```{r t.test_random_conf, options}
+with(check_basket_data_b1max_random, t.test(mean_conf_high_MED, mean_conf_low_MED, paired = T))
+```
+
+There seems to be difference of 0.325 or around 65 points here which is good.
+
+__Performance on Evaluation__
+
+We can check the same for the evaluations instead of confidence, which we would like to be equal.
+
+```{r t.test_random_eval, options}
+with(check_basket_data_b1max_random, t.test(mean_eval_high_MED, mean_eval_low_MED, paired = T))
+```
+
+The overall difference is again significant here, but rather small, showing a basket difference of only around -.002 point in evaluation between the high-confidence and low-confidence condition, which is a good sign of the value-matching by clustering working well.
+
+
+__Participant-wise performance__
+
+We can also check whether for each participant seperately, there was a difference in the confidence and evaluations, instead of checking whether the overall means are different across random data-sets.
+
+For confidence we find:
+
+```{r t.test_random_conf_within, options}
+with(check_basket_data_b1max_random, t.test(pval_conf, mu = 0.05, alternative = "less"))
+```
+
+
+We see that the average p-value is 0 with not a single value being significant and the biggest value being `r max(check_basket_data_b1max_random$pval_conf)`.
+
+
+```{r t.test_random_eval_within, options}
+with(check_basket_data_b1max_random, t.test(pval_eval, mu = 0.05, alternative = "less"))
+```
+
+
+We see that the average p-value is around .96 with not a single value being significant and the smallest value being `r min(check_basket_data_b1max_random$pval_eval)`.
+
+
+
+### Performance in simulated data.
+
+
+Lastly, we check how the algorithm performs with data that are simulated based on assuming that data is generated from a zero-one-inflated beta mixture model described by `brm_IV_sim` below.
+
+The idea is the following:
+
+- As we know that the distribution of both evaluations and confidence ratings is severely left-skewed, we first simulate how many of the evaluations will be on the left and right side of the scale. The purpose here is to model the dip in ratings around .50 in the observed evaluations + confidence ratings.
+- Next, we use the simulated left/right side of scale variable to predict the outcome distribution fo evaluations and confidence ratings. 
+- Third, from these simulated evaluations and confidence ratings, we will use the clustering algorithm again to create simulated baskets with either low or high confidence in each cluster (this is the `basket_f` variable that will be the IV in the power simulation).
+
+
+```{r simulate_data_test, eval = eval_run}
+single_conf_data_prereg$conf_scalehalf <- ifelse(single_conf_data_prereg$confidence_01 < .5, 0, 1)
+single_conf_data_prereg$eval_scalehalf <- ifelse(single_conf_data_prereg$evaluation_01 < .5, 0, 1)
+
+bf_eval_scalehalf <- bf(eval_scalehalf ~ 1 + (1 |p| subject) + (1 |q| stim_name), 
+                         family = bernoulli())
+bf_conf_scalehalf <- bf(conf_scalehalf ~ 1 + (1 |p| subject) + (1 |q| stim_name), 
+                         family = bernoulli())
+
+brm_scalehalf_sim <- brm(bf_eval_scalehalf + bf_conf_scalehalf, single_conf_data_prereg, 
+                         chains = 4, cores = 4,  backend = "cmdstanr", threads = threading(3), 
+                         warmup = 2000, iter = 4000)
+
+
+bf_eval_sim <- bf(
+  evaluation_01 ~ 1 + eval_scalehalf + (1 |p| subject) + (1 |q| stim_name),
+  phi ~ 1 + eval_scalehalf + (1 |p| subject) + (1 |q| stim_name),
+  zoi ~ 1 + eval_scalehalf + (1 |p| subject) + (1 |q| stim_name),
+  coi ~ 1 + (1 |p| subject) + (1 |q| stim_name), 
+  family = zero_one_inflated_beta()
+)
+
+bf_conf_sim <- bf(
+  confidence_01 ~ 1 + conf_scalehalf + (1 |p| subject) + (1 |q| stim_name),
+  phi ~ 1 + conf_scalehalf + (1 |p| subject) + (1 |q| stim_name),
+  zoi ~ 1 + conf_scalehalf + (1 |p| subject) + (1 |q| stim_name),
+  coi ~ 1 + (1 |p| subject) + (1 |q| stim_name), 
+  family = zero_one_inflated_beta()
+)
+
+brm_IV_sim <-  brm(bf_eval_sim + bf_conf_sim, single_conf_data_prereg, chains = 4, cores = 4,  backend = "cmdstanr", threads = threading(3), warmup = 2000, iter = 5000)
+if(eval_run == TRUE){
+  saveRDS(brm_IV_sim, "brm_IV_sim_161220.RDS")
+}
+
+
+sample_seq_lowres <- seq(40, 160, by = 20)
+simul_data_list_b1max <- list()
+set.seed(789)
+rng <- lapply(1:length(sample_seq_lowres), function(x) round(runif(100, 1,1e6), 0))
+start_time <- Sys.time()
+cl <- makeCluster(rep("localhost", 10), outfile="mylog.txt")
+clusterEvalQ(cl, c(library("plyr"), library("brms"), library("cmdstanr")))
+clusterExport(cl, list("shuffle_data_b1max", "brm_IV_sim", "sample_seq_lowres", "rng", "generate_design", "brm_scalehalf_sim"))
+registerDoParallel(cl)
+start_time <- Sys.time()
+
+# we sample 400 here so we can combine simulated data sets to be able to estimate power for higher N than the original data.
+simul_data_list_b1max <- foreach(k = 1:length(sample_seq_lowres)) %:%
+  foreach(i = 1:100) %dopar% { 
+  rngtools::setRNG(rng[[k]][i])
+  if(i%%10 == 0){
+    print(paste0("######################## sequence-nr: ", k, " of ", length(sample_seq_lowres), ", iteration nr: ", i," ########################"))
+  }
+  return(shuffle_data_b1max(NULL, method = "simulate", n_subj = sample_seq_lowres[k], n_stim = 60))
+} 
+end_time <- Sys.time()
+stopCluster(cl)
+print(end_time-start_time)
+
+check_basket_data_b1max_simul <- check_baskets(simul_data_list_b1max[[2]]) # 2 to check N = 60
+
+saveRDS(simul_data_list_b1max, "Data_lowres_161220.RDS")
+```
+
+```{r load_lowres_data, options}
+if(eval_run == FALSE){
+  simul_data_list_b1max <- readRDS("Data_lowres_161220.RDS")
+  check_basket_data_b1max_simul <- check_baskets(simul_data_list_b1max[[2]]) # 2 to check N = 60
+}
+```
+
+__Performance on Confidence__
+
+We can check for each simulation whether the median basket-confidence in the high-confidence condition is indeed higher than the low-confidence baskets'.
+
+
+```{r t.test_simul_conf, options}
+with(check_basket_data_b1max_simul, t.test(mean_conf_high_MED, mean_conf_low_MED, paired = T))
+```
+
+
+There seems to be difference of around 0.296 or 59 points here which is good.
+
+__Performance on Evaluation__
+
+We can check the same for the evaluations instead of confidence, which we would like to be equal.
+
+
+```{r t.test_simul_eval, options}
+with(check_basket_data_b1max_simul, t.test(mean_eval_high_MED, mean_eval_low_MED, paired = T))
+```
+
+
+The overall difference is not significant here, but rather small, showing a basket difference of only around .0002 point in evaluation between the high-confidence and low-confidence condition, which is a good sign of the value-matching by clustering working well.
+
+
+__Participant-wise performance__
+
+We can also check whether for each participant seperately, there was a difference in the confidence and evaluations, instead of checking whether the overall means are different across simulated data-sets.
+
+For confidence we find:
+
+```{r t.test_simul_conf_within, options}
+with(check_basket_data_b1max_simul, t.test(pval_conf, mu = 0.05, alternative = "less"))
+```
+
+
+We see that the average p-value is 0 with not a single value being significant and the biggest value being `r max(check_basket_data_b1max_simul$pval_conf)`.
+
+```{r t.test_simul_eval_within, options}
+with(check_basket_data_b1max_simul, t.test(pval_eval, mu = 0.05, alternative = "less"))
+```
+
+
+We see that the average p-value is around .97 with not a single value being significant and the smallest value being `r min(check_basket_data_b1max_simul$pval_eval)`.
+
+
+# Part II calcuating power
+
+## load basket data to simulate responses
+
+First, the Data from Experiment 1 needs to be loaded from OSF, as we will use it to estimate the effect sizes that item properties have on actual basket evaluations and confidence ratings.
+
+```{r load_basket_data, eval = eval_run}
+osf_node <- osf_retrieve_node("9y38n") # retrieve OSF node
+osf_datafolder <- osf_ls_files(osf_node, path = "processed_data", n_max = Inf) # get data folder
+basket_conf_data <- osf_load_file(
+  osf_datafolder$id[osf_datafolder$name == "basket_conf_data_exp1.csv"], 
+  "basket_conf_data_exp1.csv", stringsAsFactors = F) # load file
+```
+
+
+Preregistered Exclusion criteria form Experiment 1 will be applied and relevant variables centered and standardized.
+
+```{r apply_exclusion_basket, eval = eval_run}
+basket_conf_data_prereg <- droplevels(subset(basket_conf_data, 
+                                             prereg_exclusion == 0))
+
+
+
+#and subject
+basket_conf_data_prereg$subject <- as.factor(basket_conf_data_prereg$subject)
+
+#rescale confidence ratings to between 0 and 1 to make the model easier to estimate for e.g. zoib model
+basket_conf_data_prereg$confidence_01 <- (basket_conf_data_prereg$confidence - min(basket_conf_data_prereg$confidence,na.rm = T))/
+  (max(basket_conf_data_prereg$confidence,na.rm=T) - min(basket_conf_data_prereg$confidence,na.rm = T))
+
+basket_conf_data_prereg$value_sd_01 <- (basket_conf_data_prereg$value_sd - min(basket_conf_data_prereg$value_sd,na.rm = T))/
+  (max(basket_conf_data_prereg$value_sd,na.rm=T) - min(basket_conf_data_prereg$value_sd,na.rm = T))
+
+basket_conf_data_prereg_aggr <- ddply(basket_conf_data_prereg, .(subject, stim_name), summarize, confidence_01 = mean(confidence_01), value_sd = mean(value_sd), evaluation = mean(evaluation), confidence_mean = mean(confidence_mean), value_mean = mean(c(item1_value, item2_value, item3_value)))
+
+basket_conf_data_prereg_aggr$value_mean_01 <- (basket_conf_data_prereg_aggr$value_mean - min(basket_conf_data_prereg_aggr$value_mean,na.rm = T))/
+  (max(basket_conf_data_prereg_aggr$value_mean,na.rm=T) - min(basket_conf_data_prereg_aggr$value_mean,na.rm = T))
+basket_conf_data_prereg_aggr$value_mean_01 <- (basket_conf_data_prereg_aggr$value_mean - min(basket_conf_data_prereg_aggr$value_mean,na.rm = T))/
+  (max(basket_conf_data_prereg_aggr$value_mean,na.rm=T) - min(basket_conf_data_prereg_aggr$value_mean,na.rm = T))
+basket_conf_data_prereg_aggr$confidence_mean_01 <- (basket_conf_data_prereg_aggr$confidence_mean - min(basket_conf_data_prereg_aggr$confidence_mean,na.rm = T))/
+  (max(basket_conf_data_prereg_aggr$confidence_mean,na.rm=T) - min(basket_conf_data_prereg_aggr$confidence_mean,na.rm = T))
+
+
+basket_conf_data_prereg_aggr <- standardize_vars(basket_conf_data_prereg_aggr,
+                                            vars = c("confidence_mean",
+                                                     "value_sd", "rep_nr", "evaluation", "value_mean", "value_sd_01", "value_mean_01", "confidence_mean_01"))
+
+```
+
+
+## simulate power
+
+Next, we fit a zoib model on the observed basket-evaluations predicting them from mean item-confidence, value-mean and value-SD of the items in the basket.
+
+```{r fit_basket_data_model, eval = eval_run}
+m_prior <- c(set_prior('normal(1.10, 1.95)', class = 'Intercept'),
+             set_prior('normal(0, 2.71)', class = 'b'), # 50 points from -2sd to +2sd
+             set_prior('cauchy(0, 1)', class = 'sd')
+)
+
+
+bf_zoib_genY <- bf(
+    confidence_01 ~ confidence_mean_01_s + value_sd_s + value_mean_01_s + (1 + confidence_mean_01_s + value_sd_s + value_mean_01_s |   subject),
+        phi ~ confidence_mean_01_s + value_sd_s + value_mean_01_s + (1 | subject),
+        zoi ~ confidence_mean_01_s + value_sd_s + value_mean_01_s + (1 | subject),
+        coi ~ confidence_mean_01_s + (1 | subject), 
+        family = zero_one_inflated_beta()
+)
+
+brm_zoib_genY <- brm(bf_zoib_genY
+         , data = basket_conf_data_prereg_aggr
+         , prior = m_prior
+         , chains = 4, cores = 4, threads = threading(3), warmup = 2000, iter = 5000
+         , backend = "cmdstanr", control = list(adapt_delta = .99, max_treedepth = 15)
+         )
+
+saveRDS(brm_zoib_genY, "brm_zoib_genY_171220.RDS")
+```
+
+Next, we extract the posterior and use it as parameters for the power-simulation. 
+The idea is that we will use the observed effect of mean-confidence on basket-confidence to estimate basket confidence-ratings. 
+These estimated basket confidence-ratings will be retrieved for each of the simulated data sets from above.
+We then rename the simulated `confidence_01` variable from the 100 simulated data-sets above to `confidence_mean`. 
+This `confidence_mean` variable represents the _expected_ mean-confidences of the counterfeit baskets.
+In other words, based on the observed mean-confidence of 3 items in a basket, we predict what new mean-basket ratings could look like. 
+These will now serve as our independent variable `confidence_mean` that we will later use to predict basket confidence ratings based on predictions from the observed relationships between confidence-means of the items in a basket and the resulting basket confidence ratings.
+
+The new DV which we will simulate, which will also be called `confidence_01` represents the basket-ratings that we should expect if the effect of the basket properties from Experiment 1 hold true in Experiment 2 as well. 
+
+This `confidence_mean --> confidence_01` relationship will determine how strong the relationship between `basket_f` (the variable that we are interested in) and `confidence_01` is, because `basket_f` captures partial variance that results from the influence of `confidence_mean` on `confidence_01`. 
+
+In other words we did the following for 100 counterfeit datasets:
+
+1. shuffle the rows in the data-set so that new participant-to-item matches arise that result in new clusters.
+1. create clusters from the observed ratings with high-confidence and low-confidence baskets.
+1. simulate expected basket mean-confidences based on a zoib-model `confidence_01 ~ value_mean + value_sd + basket_f`. This way we get _expected_ differences in basket confidences given the specified predictors in the model.
+1. take these basket-confidences as the IV (confidence_mean) and simulate a new DV based on the relationship between the IV and the other observed properties (i.e. value-mean and value-sd).
+
+This data is then used for the power simulation.
+
+
+```{r init_powersim_model, eval = eval_run}
+simul_data_list_b1max_Ysim <- simul_data_list_b1max
+outcome_list <- list()
+start_time <- Sys.time()
+cl <- makeCluster(rep("localhost", 10), outfile="mylog.txt")
+clusterExport(cl, list("simul_data_list_b1max_Ysim", "brm_zoib_genY"))
+clusterEvalQ(cl, c(library("plyr"), library("brms"), library("cmdstanr")))
+registerDoParallel(cl)
+start_time <- Sys.time()
+set.seed(101112)
+rng <- lapply(1:length(sample_seq_lowres), function(x) round(runif(100, 1,1e6), 0))
+# we sample 400 here so we can combine simulated data sets to be able to estimate power for higher N than the original data.
+outcome_list <- foreach(k = 1:length(sample_seq_lowres)) %:%
+  foreach(i = 1:100) %dopar% { 
+  r=rngtools::setRNG(rng[[k]][i])
+  if(i%%10 == 0){
+    print(paste0("######################## sequence-nr: ", k, " of ", length(sample_seq_lowres), ", iteration nr: ", i," ########################"))
+  }
+  return(predict(brm_zoib_genY, newdata = simul_data_list_b1max_Ysim[[k]][[i]], summary=FALSE, nsamples=1, allow_new_levels = TRUE)[1,])
+} 
+end_time <- Sys.time()
+stopCluster(cl)
+print(end_time-start_time)
+
+for(k in 1:length(sample_seq_lowres)){
+  for(i in 1:100){
+  simul_data_list_b1max_Ysim[[k]][[i]]$confidence_01 <- outcome_list[[k]][[i]]
+  }
+}
+saveRDS(simul_data_list_b1max_Ysim, "Data_Ysim_lowres_151220.RDS")
+# simul_data_list_b1max_Ysim <- readRDS("Data_Ysim_lowres_151220.RDS")
+
+
+###################### init models #########################
+brm_sim_init_gauss <- brm(confidence_01 ~ basket_f + value_sd_s + value_mean_s +
+                            (1 + basket_f + value_sd_s + value_mean_s | subject), 
+                          backend = "cmdstanr", chains = 4, cores = 4, 
+                          warmup = 1000, iter = 2000, data = data_with_baskets_b1max_aggr)
+
+
+
+brm_sim_init_SN <- brm(confidence_01 ~ basket_f + value_sd_s + value_mean_s + 
+                            (1 + basket_f + value_sd_s + value_mean_s | subject), 
+                          backend = "cmdstanr", chains = 4, cores = 4, 
+                          warmup = 1000, iter = 2000, data = data_with_baskets_b1max_aggr, family = "skew_normal")
+
+data_with_baskets_b1max_aggr$confidence_200 <- round(data_with_baskets_b1max_aggr$confidence_01*200)
+brm_sim_init_BB <- brm(confidence_200 | vint(200) ~ basket_f + value_sd_s + value_mean_s + 
+                            (1 + basket_f + value_sd_s + value_mean_s | subject), 
+                          backend = "cmdstanr", chains = 4, cores = 4, 
+                          warmup = 1000, iter = 2000, data = data_with_baskets_b1max_aggr, family = beta_binomial2, stanvars = stanvars)
+
+brm_sim_init_BB_rstan <- brm(confidence_200 | vint(200) ~ basket_f + value_sd_s + value_mean_s + 
+                            (1 + basket_f + value_sd_s + value_mean_s | subject), 
+                          chains = 4, cores = 4, 
+                          warmup = 1000, iter = 2000, data = data_with_baskets_b1max_aggr, family = beta_binomial2, stanvars = stanvars)
+
+bf_sim_init_zoib <- bf(
+    confidence_01 ~ basket_f + value_sd_s + value_mean_s + (1 + basket_f + value_sd_s + value_mean_s | subject),
+        phi ~ basket_f + value_sd_s + value_mean_s + (1 | subject),
+        zoi ~ basket_f + value_sd_s + value_mean_s + (1 | subject),
+        coi ~ basket_f + (1 | subject), 
+        family = zero_one_inflated_beta()
+  )
+
+
+brm_sim_init_zoib  <- brm(bf_sim_init_zoib
+         , data = data_with_baskets_b1max_aggr
+         # , prior = m_prior
+         , chains = 4, cores = 4, warmup = 1000, iter = 2000
+         , backend = "cmdstanr", inits = "0"
+         )
+
+
+
+```
+
+## Power Simulation
+
+For the power simulation, we will use a ROPE approach, where we test the posterior of the parameter of interest (i.e. the effect of `basket_f`) against a Region of Pratcial Equivalence such that 95% of the posterior mass should be completely outside the ROPE to reject the H0.
+The ROPE that we choose here is [-0.0125, 0.0125]. 
+Thus, each difference smaller than 0.05 points between low confidence and high confidence baskets (when they are zero-sum coded as low_confidence = -1 and high_confidence = 1) is considered too small to care about.
+For the power analysis, we will select the sample size based on the rejection rate when using this rate + the acception rate (whatever number is smaller and therefore yields the larger required sample-size).
+The ROPE acception rate here does not refer to the idea that the estimate is entirely in the ROPE but rather that the precision is high enough that the 95% HDI of the estimate is not larger than the width of the ROPE (i.e. 0.025) regardless of the position/size of the estimate.
+
+
+### low resolution (100 samples at steps of 20)
+
+First, we simulate few samples for various sample sizes to see how the power curve develops.
+
+```{r power_sample_low_res, eval = eval_run}
+brm_output_list_perN <- list()
+start_time <- Sys.time()
+cl <- makeCluster(rep("localhost", 10), outfile="mylog.txt")
+clusterExport(cl, list("simul_data_list_b1max_Ysim", "brm_sim_init_gauss", "sample_seq_lowres"))
+clusterEvalQ(cl, c(library("brms"), library("cmdstanr"), library("bayestestR")))
+registerDoParallel(cl)
+brm_output_list_perN <- foreach(k = 1:length(sample_seq_lowres)) %:% 
+  foreach(i = 1:100, .verbose = T) %dopar% {
+    if(i %% 10 == 0){
+      print(paste0("############################## sequence-nr: ", k, " of ", length(sample_seq_lowres), ", iteration nr: ", i," ##############################"))
+    }
+    return(hdi(update(brm_sim_init_gauss, newdata =  simul_data_list_b1max_Ysim[[k]][[i]], chains = 1, cores = 1, warmup = 1000, iter = 6000, threads = threading(1), refresh = 0), ci = c(.89, .95, .975)))
+  }
+end_time <- Sys.time()
+stopCluster(cl)
+
+saveRDS(brm_output_list_perN, "brm_output_list_perN_161220_40-160.RDS")
+```
+
+```{r plot_power_at_n_lowres, echo = FALSE}
+if(eval_run == FALSE){
+  sample_seq <- seq(40, 160, by = 20)
+  brm_output_list_perN <- readRDS("brm_output_list_perN_161220_40-160.RDS")
+
+  prop_reject_rope_perN <- c()
+  for(i in 1:length(brm_output_list_perN)){
+    prop_reject_rope_perN[i] <- mean(sapply(1:length(brm_output_list_perN[[i]]), function(x) brm_output_list_perN[[i]][[x]]$CI_low[which(brm_output_list_perN[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN[[i]][[x]]$CI == 95.0)]  > 0.0125))
+  }
+  
+  
+  
+  
+  prop_excl_zero_perN <- c()
+  for(i in 1:length(brm_output_list_perN)){
+    prop_excl_zero_perN[[i]] <- mean(sapply(1:length(brm_output_list_perN[[i]]), function(x) brm_output_list_perN[[i]][[x]]$CI_low[which(brm_output_list_perN[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN[[i]][[x]]$CI == 97.5)]  > 0.0))
+  }
+  
+  HDI_width_perN <- c()
+  for(i in 1:length(brm_output_list_perN)){
+    HDI_width_perN[[i]] <- mean(sapply(1:length(brm_output_list_perN[[i]]), function(x) (brm_output_list_perN[[i]][[x]]$CI_high[which(brm_output_list_perN[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN[[i]][[x]]$CI == 95)] - brm_output_list_perN[[i]][[x]]$CI_low[which(brm_output_list_perN[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN[[i]][[x]]$CI == 95)])  <= 0.025) == TRUE)
+  
+  }
+  
+    plot(sample_seq, prop_reject_rope_perN, pch = 22, ylim = c(0,1), col = "red", bg = "red", xaxt = "n", ylab = "power")+abline(h = .80, col = "dodgerblue4")+abline(h = .90, col = "dodgerblue3")+abline(h = .95, col = "dodgerblue2")+axis(1, at = sample_seq)
+    par(new=T)
+    plot(sample_seq, prop_excl_zero_perN, pch = 22, ylim = c(0,1), col = "blue", bg = "blue", xaxt = "n", yaxt = "n", ylab = "")
+    par(new=T)
+    plot(sample_seq, HDI_width_perN, pch = 22, ylim = c(0,1), col = "green", bg = "green", xaxt = "n", yaxt = "n", ylab = "")
+    legend(100, 0.2, legend=c("ROPE REJECT", "PROP. OF POSTERIOR > 0", "ROPE ACCEPT"),
+       col=c("red", "blue", "green"), lty=1, cex=0.8)
+}
+```
+</br>
+
+The above plot shows the power estimates in a rough estimate with 100 simulations per N. 
+We can see that the ROPE rejection rate is already > 80% at N = 60, but the accuracy of the estimate seems rather low which is why the ROPE accept rate (i.e. precision of the estimate) is not adequate yet.
+
+### Power at N = 100
+
+We get > .80 power based on all three criteria at N > 100.
+Thus, we refit the power analysis at N = 100 with a skew-normal, a beta-binomial and zoib model to test whether that results in similar power.
+
+```{r power_test_singleN100_SN, eval = eval_run}
+brm_output_list_singleN100_SN <- list()
+start_time <- Sys.time()
+cl <- makeCluster(rep("localhost", 10), outfile="mylog.txt")
+clusterEvalQ(cl, c(library("plyr"), library("brms"), library("cmdstanr"), library("bayestestR")))
+clusterExport(cl, list("simul_data_list_b1max_Ysim", "brm_sim_init_SN"))
+registerDoParallel(cl)
+brm_output_list_singleN100_SN <- foreach(i = 1:100, .verbose = T) %dopar% {
+    if(i%%10==0){
+      print(paste0("\n", "############################## ", i, " ##############################", "\n"))
+    }
+     return(hdi(update(brm_sim_init_SN, newdata =  simul_data_list_b1max_Ysim[[4]][[i]], chains = 1, cores = 1, warmup = 2000, iter = 4000, threads = threading(1), refresh = 0, init = "0"), ci = c(.89, .95, .975)))
+}
+stopCluster(cl)
+end_time <- Sys.time()
+saveRDS(brm_output_list_singleN100_SN, "brm_output_list_singleN100_SN_161220.RDS")
+```
+
+
+```{r plot_power_at_n100_SN, echo = FALSE}
+if(eval_run == FALSE){
+  brm_output_list_singleN100_SN <- readRDS("brm_output_list_singleN100_SN_161220.RDS")
+
+prop_excl_zero_singleN100_SN <- c()
+prop_excl_zero_singleN100_SN <- mean(sapply(1:length(brm_output_list_singleN100_SN), function(x) brm_output_list_singleN100_SN[[x]]$CI_low[which(brm_output_list_singleN100_SN[[x]]$Parameter == "b_basket_f" & brm_output_list_singleN100_SN[[x]]$CI == 97.5)]  > 0.0))
+
+prop_reject_rope_singleN100_SN  <- c()
+  prop_reject_rope_singleN100_SN <- mean(sapply(1:length(brm_output_list_singleN100_SN), function(x) brm_output_list_singleN100_SN[[x]]$CI_low[which(brm_output_list_singleN100_SN[[x]]$Parameter == "b_basket_f" & brm_output_list_singleN100_SN[[x]]$CI == 95)] > 0.0125))
+
+HDI_width_psingleN100_SN <- c()
+  HDI_width_psingleN100_SN <- mean(sapply(1:length(brm_output_list_singleN100_SN), function(x) (brm_output_list_singleN100_SN[[x]]$CI_high[which(brm_output_list_singleN100_SN[[x]]$Parameter == "b_basket_f" & brm_output_list_singleN100_SN[[x]]$CI == 95)] - brm_output_list_singleN100_SN[[x]]$CI_low[which(brm_output_list_singleN100_SN[[x]]$Parameter == "b_basket_f" & brm_output_list_singleN100_SN[[x]]$CI == 95)])  <= 0.025) == TRUE)
+  
+    plot(100, prop_reject_rope_singleN100_SN, pch = 22, ylim = c(0,1), col = "red", bg = "red", xaxt = "n", ylab = "power")+abline(h = .80, col = "dodgerblue4")+abline(h = .90, col = "dodgerblue3")+abline(h = .95, col = "dodgerblue2")+axis(1, at = sample_seq)
+    par(new=T)
+    plot(100, prop_excl_zero_singleN100_SN, pch = 22, ylim = c(0,1), col = "blue", bg = "blue", xaxt = "n", yaxt = "n", ylab = "")
+    par(new=T)
+    plot(100, HDI_width_psingleN100_SN, pch = 22, ylim = c(0,1), col = "green", bg = "green", xaxt = "n", yaxt = "n", ylab = "")
+      legend(100, 0.2, legend=c("ROPE REJECT", "PROP. OF POSTERIOR > 0", "ROPE ACCEPT"),
+       col=c("red", "blue", "green"), lty=1, cex=0.8)
+}
+```
+</br>
+
+For the Skew-Normal model, the estimates seem to be more accurate but the rejection rate is below 80%.
+
+
+```{r power_test_singleN100_BB, eval = eval_run}
+brm_output_list_singleN100_BB <- list()
+start_time <- Sys.time()
+cl <- makeCluster(rep("localhost", 10), outfile="mylog.txt")
+clusterEvalQ(cl, c(library("plyr"), library("brms"), library("cmdstanr"), library("bayestestR")))
+clusterExport(cl, list("simul_data_list_b1max_Ysim", "brm_sim_init_BB", "beta_binomial2", "stanvars"))
+registerDoParallel(cl)
+brm_output_list_singleN100_BB <- foreach(i = 1:100, .verbose = T) %dopar% {
+    if(i%%10==0){
+      print(paste0("\n", "############################## ", i, " ##############################", "\n"))
+    }
+     simul_data_list_b1max_Ysim[[4]][[i]]$confidence_200 <- round(simul_data_list_b1max_Ysim[[4]][[i]]$confidence_01*200)
+     return(hdi(update(brm_sim_init_BB, newdata =  simul_data_list_b1max_Ysim[[4]][[i]], chains = 1, cores = 1, warmup = 2000, iter = 4000, refresh = 0, init = "0"), ci = c(.89, .95, .975)))
+}
+stopCluster(cl)
+end_time <- Sys.time()
+saveRDS(brm_output_list_singleN100_BB, "brm_output_list_singleN100_BB_200121.RDS")
+```
+
+
+```{r plot_power_at_n100_BB, echo = FALSE}
+if(eval_run == FALSE){
+  brm_output_list_singleN100_BB <- readRDS("brm_output_list_singleN100_BB_200121.RDS")
+
+  prop_excl_zero_singleN100_BB <- c()
+  prop_excl_zero_singleN100_BB <- mean(sapply(1:length(brm_output_list_singleN100_BB), function(x) brm_output_list_singleN100_BB[[x]]$CI_low[which(brm_output_list_singleN100_BB[[x]]$Parameter == "b_basket_f" & brm_output_list_singleN100_BB[[x]]$CI == 97.5)]  > 0.0))
+  
+  prop_reject_rope_singleN100_BB  <- c()
+    prop_reject_rope_singleN100_BB <- mean(sapply(1:length(brm_output_list_singleN100_BB), function(x) brm_output_list_singleN100_BB[[x]]$CI_low[which(brm_output_list_singleN100_BB[[x]]$Parameter == "b_basket_f" & brm_output_list_singleN100_BB[[x]]$CI == 95)] > 0.062))
+  
+  HDI_width_psingleN100_BB <- c()
+    HDI_width_psingleN100_BB <- mean(sapply(1:length(brm_output_list_singleN100_BB), function(x) (brm_output_list_singleN100_BB[[x]]$CI_high[which(brm_output_list_singleN100_BB[[x]]$Parameter == "b_basket_f" & brm_output_list_singleN100_BB[[x]]$CI == 95)] - brm_output_list_singleN100_BB[[x]]$CI_low[which(brm_output_list_singleN100_BB[[x]]$Parameter == "b_basket_f" & brm_output_list_singleN100_BB[[x]]$CI == 95)])  <= 0.124) == TRUE)
+    
+      plot(100, prop_reject_rope_singleN100_BB, pch = 22, ylim = c(0,1), col = "red", bg = "red", xaxt = "n", ylab = "power")+abline(h = .80, col = "dodgerblue4")+abline(h = .90, col = "dodgerblue3")+abline(h = .95, col = "dodgerblue2")+axis(1, at = sample_seq)
+      par(new=T)
+      plot(100, prop_excl_zero_singleN100_BB, pch = 22, ylim = c(0,1), col = "blue", bg = "blue", xaxt = "n", yaxt = "n", ylab = "")
+      par(new=T)
+      plot(100, HDI_width_psingleN100_BB, pch = 22, ylim = c(0,1), col = "green", bg = "green", xaxt = "n", yaxt = "n", ylab = "")
+      legend(100, 0.2, legend=c("ROPE REJECT", " PROP. OF POSTERIOR > 0", "ROPE ACCEPT"),
+       col=c("red", "blue", "green"), lty=1, cex=0.8)
+}
+```
+
+For the beta-binomial, power is very high but the ROPE ACCEPT rate is very low pointing at larger but more uncertain estimates when using a beta-binomial model.
+
+```{r power_test_singleN100_zoib, eval = eval_run}
+brm_output_list_singleN100_zoib <- list()
+start_time <- Sys.time()
+cl <- makeCluster(rep("localhost", 10), outfile="mylog.txt")
+clusterExport(cl, list("simul_data_list_b1max_Ysim", "brm_sim_init_zoib"))
+clusterEvalQ(cl, c(library("brms"), library("cmdstanr"), library("bayestestR")))
+registerDoParallel(cl)
+brm_output_list_singleN100_zoib <- foreach(i = 1:100, .verbose = T) %dopar% {
+    if(i%%10==0){
+      print(paste0("\n", "############################## ", i, " ##############################", "\n"))
+    }
+     return(hdi(update(brm_sim_init_zoib, newdata =  simul_data_list_b1max_Ysim[[4]][[i]], chains = 1, cores = 1, warmup = 2000, iter = 4000, threads = threading(1), refresh = 0, init = "0"), ci = c(.89, .95, .975)))
+}
+stopCluster(cl)
+end_time <- Sys.time()
+saveRDS(brm_output_list_singleN100_zoib, "brm_output_list_singleN100_zoib_161220.RDS")
+```
+
+```{r plot_power_at_n100_zoib, echo = FALSE}
+if(eval_run == FALSE){
+  brm_output_list_singleN100_zoib <- readRDS("brm_output_list_singleN100_zoib_161220.RDS")
+
+  prop_excl_zero_singleN100_zoib <- c()
+  prop_excl_zero_singleN100_zoib <- mean(sapply(1:length(brm_output_list_singleN100_zoib), function(x) brm_output_list_singleN100_zoib[[x]]$CI_low[which(brm_output_list_singleN100_zoib[[x]]$Parameter == "b_basket_f" & brm_output_list_singleN100_zoib[[x]]$CI == 97.5)]  > 0.0))
+  
+  prop_reject_rope_singleN100_zoib  <- c()
+    prop_reject_rope_singleN100_zoib <- mean(sapply(1:length(brm_output_list_singleN100_zoib), function(x) brm_output_list_singleN100_zoib[[x]]$CI_low[which(brm_output_list_singleN100_zoib[[x]]$Parameter == "b_basket_f" & brm_output_list_singleN100_zoib[[x]]$CI == 95)] > 0.062))
+  
+  HDI_width_psingleN100_zoib <- c()
+    HDI_width_psingleN100_zoib <- mean(sapply(1:length(brm_output_list_singleN100_zoib), function(x) (brm_output_list_singleN100_zoib[[x]]$CI_high[which(brm_output_list_singleN100_zoib[[x]]$Parameter == "b_basket_f" & brm_output_list_singleN100_zoib[[x]]$CI == 95)] - brm_output_list_singleN100_zoib[[x]]$CI_low[which(brm_output_list_singleN100_zoib[[x]]$Parameter == "b_basket_f" & brm_output_list_singleN100_zoib[[x]]$CI == 95)])  <= 0.124) == TRUE)
+    
+      plot(100, prop_reject_rope_singleN100_zoib, pch = 22, ylim = c(0,1), col = "red", bg = "red", xaxt = "n", ylab = "power")+abline(h = .80, col = "dodgerblue4")+abline(h = .90, col = "dodgerblue3")+abline(h = .95, col = "dodgerblue2")+axis(1, at = sample_seq)
+      par(new=T)
+      plot(100, prop_excl_zero_singleN100_zoib, pch = 22, ylim = c(0,1), col = "blue", bg = "blue", xaxt = "n", yaxt = "n", ylab = "")
+      par(new=T)
+      plot(100, HDI_width_psingleN100_zoib, pch = 22, ylim = c(0,1), col = "green", bg = "green", xaxt = "n", yaxt = "n", ylab = "")
+      legend(100, 0.2, legend=c("ROPE REJECT", " PROP. OF POSTERIOR > 0", "ROPE ACCEPT"),
+       col=c("red", "blue", "green"), lty=1, cex=0.8)
+}
+```
+</br>
+
+For the zoib model, at N = 100 both, the rejection rate and the accept rate are far below 80%.
+
+
+### Higher resolution analysis for critical bound margins
+
+```{r create_highres_datavec, eval = eval_run}
+sample_seq_highres <- seq(100, 130, by = 10)
+simul_data_list_b1max_highres <- list()
+set.seed(131415)
+rng <- lapply(1:length(sample_seq_highres), function(x) round(runif(1000, 1,1e6), 0))
+start_time <- Sys.time()
+cl <- makeCluster(rep("localhost", 10), outfile="mylog.txt")
+clusterEvalQ(cl, c(library("plyr"), library("brms"), library("cmdstanr")))
+clusterExport(cl, list("shuffle_data_b1max", "brm_IV_sim", "sample_seq_highres", "rng", "generate_design", "brm_scalehalf_sim"))
+registerDoParallel(cl)
+start_time <- Sys.time()
+simul_data_list_b1max_highres <- foreach(k = 1:length(sample_seq_highres)) %:%
+  foreach(i = 1:1000) %dopar% { 
+    rngtools::setRNG(rng[[k]][i])
+    if(i%%10 == 0){
+    print(paste0("######################## sequence-nr: ", k, " of ", length(sample_seq_highres), ", iteration nr: ", i," ########################"))
+    }
+    return(shuffle_data_b1max(NULL, method = "simulate", n_subj = sample_seq_highres[k], n_stim = 60))
+  } 
+end_time <- Sys.time()
+stopCluster(cl)
+print(end_time-start_time)
+saveRDS(simul_data_list_b1max_highres, "simul_data_list_b1max_highres_161220_90-120.RDS")
+
+simul_data_list_b1max_Ysim_highres <- simul_data_list_b1max_highres
+outcome_list <- list()
+start_time <- Sys.time()
+cl <- makeCluster(rep("localhost", 10), outfile="mylog.txt")
+clusterExport(cl, list("simul_data_list_b1max_Ysim_highres", "brm_zoib_genY", "sample_seq_highres"))
+clusterEvalQ(cl, c(library("plyr"), library("brms"), library("cmdstanr")))
+registerDoParallel(cl)
+start_time <- Sys.time()
+set.seed(161718)
+rng <- lapply(1:length(sample_seq_highres), function(x) round(runif(1000, 1,1e6), 0))
+# we sample 400 here so we can combine simulated data sets to be able to estimate power for higher N than the original data.
+outcome_list <- foreach(k = 1:length(sample_seq_highres)) %:%
+  foreach(i = 1:1000) %dopar% { 
+  r=rngtools::setRNG(rng[[k]][i])
+  if(i%%10 == 0){
+    print(paste0("######################## sequence-nr: ", k, " of ", length(sample_seq_highres), ", iteration nr: ", i," ########################"))
+  }
+  return(predict(brm_zoib_genY, newdata = simul_data_list_b1max_Ysim_highres[[k]][[i]], summary=FALSE, nsamples=1, allow_new_levels = TRUE)[1,])
+} 
+end_time <- Sys.time()
+stopCluster(cl)
+print(end_time-start_time)
+
+for(k in 1:length(sample_seq_highres)){
+  for(i in 1:1000){
+  simul_data_list_b1max_Ysim_highres[[k]][[i]]$confidence_01 <- outcome_list[[k]][[i]]
+  }
+}
+
+saveRDS(simul_data_list_b1max_Ysim_highres, "Data_Ysim_highres_151220.RDS")
+```
+
+
+```{r load_highres_data, options}
+if(eval_run == FALSE){
+  simul_data_list_b1max_Ysim_highres <- readRDS("Data_Ysim_highres_151220.RDS")
+  avg_basket_nr_per_n <- list()
+  for(i in 1:length(simul_data_list_b1max_Ysim_highres)){
+    avg_basket_nr_per_n[[i]] <- sapply(1:length(simul_data_list_b1max_Ysim_highres[[i]]), function(x) nrow(simul_data_list_b1max_Ysim_highres[[i]][[x]])/length(unique(simul_data_list_b1max_Ysim_highres[[i]][[x]]$subject)))
+
+  }
+  avg_basket_nr_per_n <- unlist(avg_basket_nr_per_n)
+  hist(avg_basket_nr_per_n)
+}
+```
+
+</br>
+
+The above histogram shows the average number of baskets per simulated participant. 
+
+
+```{r power_sample_highres, eval = eval_run}
+simul_data_list_b1max_Ysim_highres <- simul_data_list_b1max_highres
+outcome_list <- list()
+start_time <- Sys.time()
+cl <- makeCluster(rep("localhost", 10), outfile="mylog.txt")
+clusterExport(cl, list("simul_data_list_b1max_Ysim_highres", "brm_zoib_genY", "sample_seq_highres"))
+clusterEvalQ(cl, c(library("plyr"), library("brms"), library("cmdstanr")))
+registerDoParallel(cl)
+start_time <- Sys.time()
+set.seed(161718)
+rng <- lapply(1:length(sample_seq_highres), function(x) round(runif(1000, 1,1e6), 0))
+# we sample 400 here so we can combine simulated data sets to be able to estimate power for higher N than the original data.
+outcome_list <- foreach(k = 1:length(sample_seq_highres)) %:%
+  foreach(i = 1:1000) %dopar% { 
+  r=rngtools::setRNG(rng[[k]][i])
+  if(i%%10 == 0){
+    print(paste0("######################## sequence-nr: ", k, " of ", length(sample_seq_highres), ", iteration nr: ", i," ########################"))
+  }
+  return(predict(brm_zoib_genY, newdata = simul_data_list_b1max_Ysim_highres[[k]][[i]], summary=FALSE, nsamples=1, allow_new_levels = TRUE)[1,])
+} 
+end_time <- Sys.time()
+stopCluster(cl)
+print(end_time-start_time)
+
+for(k in 1:length(sample_seq_highres)){
+  for(i in 1:1000){
+  simul_data_list_b1max_Ysim_highres[[k]][[i]]$confidence_01 <- outcome_list[[k]][[i]]
+  }
+}
+
+saveRDS(simul_data_list_b1max_Ysim_highres, "Data_Ysim_highres_151220.RDS")
+
+brm_output_list_perN_highres <- list()
+sample_seq_highres <- seq(100, 130, by = 10)
+start_time <- Sys.time()
+cl <- makeCluster(rep("localhost", 10), outfile="mylog.txt")
+clusterEvalQ(cl, c(library("brms"), library("cmdstanr"), library("bayestestR")))
+clusterExport(cl, list("simul_data_list_b1max_Ysim_highres", "brm_sim_init_gauss", "sample_seq_highres"))
+registerDoParallel(cl)
+brm_output_list_perN_highres <- foreach(k = 1:length(sample_seq_highres)) %:% 
+  foreach(i = 1:1000, .verbose = T) %dopar% {
+    if(i %% 10 == 0){
+      print(paste0("############################## sequence-nr: ", k, " of ", length(sample_seq_highres), ", iteration nr: ", i," ##############################"))    
+    }
+     return(hdi(update(brm_sim_init_gauss, newdata =  simul_data_list_b1max_Ysim_highres[[k]][[i]], chains = 1, cores = 1, warmup = 1000, iter = 3000, refresh = 0), ci = c(.89, .95, .975)))
+  }
+end_time <- Sys.time()
+stopCluster(cl)
+saveRDS(brm_output_list_perN_highres, "PS_highres_151220_100-130.RDS")
+```
+
+```{r plot_power_highres, options}
+if(eval_run == FALSE){
+  sample_seq_highres <- seq(100, 130, by = 10)
+  brm_output_list_perN_highres <- readRDS("PS_highres_151220_100-130.RDS")
+  
+  prop_reject_rope_perN_highres <- c()
+for(i in 1:length(brm_output_list_perN_highres)){
+  prop_reject_rope_perN_highres[i] <- mean(sapply(1:length(brm_output_list_perN_highres[[i]]), function(x) brm_output_list_perN_highres[[i]][[x]]$CI_low[which(brm_output_list_perN_highres[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres[[i]][[x]]$CI == 95.0)]  > 0.0125))
+}
+
+prop_excl_zero_perN_highres <- c()
+for(i in 1:length(brm_output_list_perN_highres)){
+  prop_excl_zero_perN_highres[[i]] <- mean(sapply(1:length(brm_output_list_perN_highres[[i]]), function(x) brm_output_list_perN_highres[[i]][[x]]$CI_low[which(brm_output_list_perN_highres[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres[[i]][[x]]$CI == 97.5)]  > 0.0))
+}
+
+HDI_width_perN_highres <- c()
+for(i in 1:length(brm_output_list_perN_highres)){
+  HDI_width_perN_highres[[i]] <- mean(sapply(1:length(brm_output_list_perN_highres[[i]]), function(x) (brm_output_list_perN_highres[[i]][[x]]$CI_high[which(brm_output_list_perN_highres[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres[[i]][[x]]$CI == 95)] - brm_output_list_perN_highres[[i]][[x]]$CI_low[which(brm_output_list_perN_highres[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres[[i]][[x]]$CI == 95)])  <= 0.025) == TRUE)
+
+}
+
+    plot(sample_seq_highres, prop_reject_rope_perN_highres, pch = 22, ylim = c(0,1), col = "red", bg = "red", xaxt = "n", ylab = "power")+abline(h = .80, col = "dodgerblue4")+abline(h = .90, col = "dodgerblue3")+abline(h = .95, col = "dodgerblue2")+axis(1, at = sample_seq_highres)
+    par(new=T)
+    plot(sample_seq_highres, prop_excl_zero_perN_highres, pch = 22, ylim = c(0,1), col = "blue", bg = "blue", xaxt = "n", yaxt = "n", ylab = "")
+    par(new=T)
+    plot(sample_seq_highres, HDI_width_perN_highres, pch = 22, ylim = c(0,1), col = "green", bg = "green", xaxt = "n", yaxt = "n", ylab = "")
+    legend(100, 0.2, legend=c("ROPE REJECT", " PROP. OF POSTERIOR > 0", "ROPE ACCEPT"),
+       col=c("red", "blue", "green"), lty=1, cex=0.8)
+}
+```
+</br>
+
+With higher number of simulations (1000 per N). 
+The Gaussian model provies power of > .80 for all three criteria at N = 110.
+Now we will check N = 100 to N = 130 for the other two models.
+
+```{r highres_SN, eval = eval_run}
+
+brm_output_list_perN_highres_SN <- list()
+sample_seq_highres <- seq(100, 130, by = 10)
+start_time <- Sys.time()
+cl <- makeCluster(rep("localhost", 10), outfile="mylog.txt")
+clusterEvalQ(cl, c(library("brms"), library("cmdstanr"), library("bayestestR")))
+clusterExport(cl, list("simul_data_list_b1max_Ysim_highres", "brm_sim_init_SN", "sample_seq_highres"))
+registerDoParallel(cl)
+brm_output_list_perN_highres_SN <- foreach(k = 1:length(sample_seq_highres)) %:% 
+  foreach(i = 1:1000, .verbose = T) %dopar% {
+    if(i %% 10 == 0){
+      print(paste0("############################## sequence-nr: ", k, " of ", length(sample_seq_highres), ", iteration nr: ", i," ##############################"))    
+    }
+     return(hdi(update(brm_sim_init_SN, newdata =  simul_data_list_b1max_Ysim_highres[[k]][[i]], chains = 1, cores = 1, warmup = 1000, iter = 3000, refresh = 0, init = "0"), ci = c(.89, .95, .975)))
+  }
+end_time <- Sys.time()
+stopCluster(cl)
+saveRDS(brm_output_list_perN_highres_SN, "PS_highres_SN_151220_100-130.RDS")
+```
+
+```{r plot_power_highres_SN, options}
+if(eval_run == FALSE){
+  sample_seq_highres <- seq(100, 130, by = 10)
+  brm_output_list_perN_highres_SN <- readRDS("PS_highres_SN_151220_100-130.RDS")
+  
+prop_reject_rope_perN_highres_SN <- c()
+for(i in 1:length(brm_output_list_perN_highres_SN)){
+  prop_reject_rope_perN_highres_SN[i] <- mean(sapply(1:length(brm_output_list_perN_highres_SN[[i]]), function(x) brm_output_list_perN_highres_SN[[i]][[x]]$CI_low[which(brm_output_list_perN_highres_SN[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres_SN[[i]][[x]]$CI == 95.0)]  >  0.0125))
+}
+
+
+
+
+prop_excl_zero_perN_highres_SN <- c()
+for(i in 1:length(brm_output_list_perN_highres_SN)){
+  prop_excl_zero_perN_highres_SN[[i]] <- mean(sapply(1:length(brm_output_list_perN_highres_SN[[i]]), function(x) brm_output_list_perN_highres_SN[[i]][[x]]$CI_low[which(brm_output_list_perN_highres_SN[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres_SN[[i]][[x]]$CI == 97.5)]  > 0.0))
+}
+
+HDI_width_perN_highres_SN <- c()
+for(i in 1:length(brm_output_list_perN_highres_SN)){
+  HDI_width_perN_highres_SN[[i]] <- mean(sapply(1:length(brm_output_list_perN_highres_SN[[i]]), function(x) (brm_output_list_perN_highres_SN[[i]][[x]]$CI_high[which(brm_output_list_perN_highres_SN[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres_SN[[i]][[x]]$CI == 95)] - brm_output_list_perN_highres_SN[[i]][[x]]$CI_low[which(brm_output_list_perN_highres_SN[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres_SN[[i]][[x]]$CI == 95)])  <= 0.025) == TRUE)
+
+}
+
+    plot(sample_seq_highres, prop_reject_rope_perN_highres_SN, pch = 22, ylim = c(0,1), col = "red", bg = "red", xaxt = "n", ylab = "power")+abline(h = .80, col = "dodgerblue4")+abline(h = .90, col = "dodgerblue3")+abline(h = .95, col = "dodgerblue2")+axis(1, at = sample_seq_highres)
+    par(new=T)
+    plot(sample_seq_highres, prop_excl_zero_perN_highres_SN, pch = 22, ylim = c(0,1), col = "blue", bg = "blue", xaxt = "n", yaxt = "n", ylab = "")
+    par(new=T)
+    plot(sample_seq_highres, HDI_width_perN_highres_SN, pch = 22, ylim = c(0,1), col = "green", bg = "green", xaxt = "n", yaxt = "n", ylab = "")
+    legend(100, 0.2, legend=c("ROPE REJECT", "PROP. OF POSTERIOR > 0", "ROPE ACCEPT"),
+       col=c("red", "blue", "green"), lty=1, cex=0.8)
+}
+```
+</br>
+
+The SN model also provides > 80% power for all criteria, already at N = 100 with the higher resolution simulation.
+
+```{r highres_BB, eval = eval_run}
+brm_output_list_perN_highres_BB <- list()
+sample_seq_highres <- seq(100, 130, by = 10)
+start_time <- Sys.time()
+cl <- makeCluster(rep("localhost", 10), outfile="mylog.txt")
+clusterEvalQ(cl, c(library("brms"), library("cmdstanr"), library("bayestestR")))
+clusterExport(cl, list("simul_data_list_b1max_Ysim_highres", "brm_sim_init_BB", "sample_seq_highres"))
+registerDoParallel(cl)
+brm_output_list_perN_highres_BB <- foreach(k = 1:length(sample_seq_highres)) %:% 
+  foreach(i = 1:1000, .verbose = T) %dopar% {
+    if(i %% 10 == 0){
+      print(paste0("############################## sequence-nr: ", k, " of ", length(sample_seq_highres), ", iteration nr: ", i," ##############################"))    
+    }
+     simul_data_list_b1max_Ysim_highres[[k]][[i]]$confidence_200 <- round(simul_data_list_b1max_Ysim_highres[[k]][[i]]$confidence_01*200)
+     return(hdi(update(brm_sim_init_BB, newdata =  simul_data_list_b1max_Ysim_highres[[k]][[i]], chains = 1, cores = 1, warmup = 1000, iter = 3000, refresh = 0, init = "0"), ci = c(.89, .95, .975)))
+  }
+end_time <- Sys.time()
+stopCluster(cl)
+saveRDS(brm_output_list_perN_highres_BB, "PS_highres_BB_151220_100-130.RDS")
+
+# brm_output_list_perN_highres_BB <- readRDS("PS_highres_BB_151220_100-130.RDS")
+```
+```{r plot_power_highres_reg, options}
+if(eval_run == FALSE){
+  sample_seq_highres <- seq(100, 130, by = 10)
+  brm_output_list_perN_highres_BB <- readRDS("PS_highres_BB_151220_100-130.RDS")
+
+  
+  prop_reject_rope_perN_highres_BB <- c()
+  for(i in 1:length(brm_output_list_perN_highres_BB)){
+    prop_reject_rope_perN_highres_BB[i] <- mean(sapply(1:length(brm_output_list_perN_highres_BB[[i]]), function(x) brm_output_list_perN_highres_BB[[i]][[x]]$CI_low[which(brm_output_list_perN_highres_BB[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres_BB[[i]][[x]]$CI == 95.0)]  >  0.062))
+  }
+      
+  prop_excl_zero_perN_highres_BB <- c()
+  for(i in 1:length(brm_output_list_perN_highres_BB)){
+    prop_excl_zero_perN_highres_BB[[i]] <- mean(sapply(1:length(brm_output_list_perN_highres_BB[[i]]), function(x) brm_output_list_perN_highres_BB[[i]][[x]]$CI_low[which(brm_output_list_perN_highres_BB[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres_BB[[i]][[x]]$CI == 97.5)]  > 0.0))
+  }
+  
+  
+  HDI_width_perN_highres_BB <- c()
+  for(i in 1:length(brm_output_list_perN_highres_BB)){
+    HDI_width_perN_highres_BB[[i]] <- mean(sapply(1:length(brm_output_list_perN_highres_BB[[i]]), function(x) (brm_output_list_perN_highres_BB[[i]][[x]]$CI_high[which(brm_output_list_perN_highres_BB[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres_BB[[i]][[x]]$CI == 95)] - brm_output_list_perN_highres_BB[[i]][[x]]$CI_low[which(brm_output_list_perN_highres_BB[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres_BB[[i]][[x]]$CI == 95)])  <= 0.124) == TRUE)
+  
+  }
+
+    plot(sample_seq_highres, prop_reject_rope_perN_highres_BB, pch = 22, ylim = c(0,1), col = "red", bg = "red", xaxt = "n", ylab = "power")+abline(h = .80, col = "dodgerblue4")+abline(h = .90, col = "dodgerblue3")+abline(h = .95, col = "dodgerblue2")+axis(1, at = sample_seq_highres)
+    par(new=T)
+    plot(sample_seq_highres, prop_excl_zero_perN_highres_BB, pch = 22, ylim = c(0,1), col = "blue", bg = "blue", xaxt = "n", yaxt = "n", ylab = "")
+    par(new=T)
+    plot(sample_seq_highres, HDI_width_perN_highres_BB, pch = 22, ylim = c(0,1), col = "green", bg = "green", xaxt = "n", yaxt = "n", ylab = "")
+    legend(100, 0.2, legend=c("ROPE REJECT", "PROP. OF POSTERIOR > 0", "ROPE ACCEPT"),
+       col=c("red", "blue", "green"), lty=1, cex=0.8)
+}
+```
+The Beta-Binomial has very high power, but also seems to have more uncertain effects, indicated by the low ROPE ACCEPT rate.
+Therefore, it might make sense to double the effect size for the minimum effect of interest the Beta-Binomial.
+
+```{r plot_power_highres_BB, options}
+if(eval_run == FALSE){
+  sample_seq_highres <- seq(100, 130, by = 10)
+  brm_output_list_perN_highres_BB <- readRDS("PS_highres_BB_151220_100-130.RDS")
+
+  
+  prop_reject_rope_perN_highres_BB <- c()
+  for(i in 1:length(brm_output_list_perN_highres_BB)){
+    prop_reject_rope_perN_highres_BB[i] <- mean(sapply(1:length(brm_output_list_perN_highres_BB[[i]]), function(x) brm_output_list_perN_highres_BB[[i]][[x]]$CI_low[which(brm_output_list_perN_highres_BB[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres_BB[[i]][[x]]$CI == 95.0)]  >  0.124))
+  }
+      
+  prop_excl_zero_perN_highres_BB <- c()
+  for(i in 1:length(brm_output_list_perN_highres_BB)){
+    prop_excl_zero_perN_highres_BB[[i]] <- mean(sapply(1:length(brm_output_list_perN_highres_BB[[i]]), function(x) brm_output_list_perN_highres_BB[[i]][[x]]$CI_low[which(brm_output_list_perN_highres_BB[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres_BB[[i]][[x]]$CI == 97.5)]  > 0.0))
+  }
+  
+  
+  HDI_width_perN_highres_BB <- c()
+  for(i in 1:length(brm_output_list_perN_highres_BB)){
+    HDI_width_perN_highres_BB[[i]] <- mean(sapply(1:length(brm_output_list_perN_highres_BB[[i]]), function(x) (brm_output_list_perN_highres_BB[[i]][[x]]$CI_high[which(brm_output_list_perN_highres_BB[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres_BB[[i]][[x]]$CI == 95)] - brm_output_list_perN_highres_BB[[i]][[x]]$CI_low[which(brm_output_list_perN_highres_BB[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres_BB[[i]][[x]]$CI == 95)])  <= 0.248) == TRUE)
+  
+  }
+
+    plot(sample_seq_highres, prop_reject_rope_perN_highres_BB, pch = 22, ylim = c(0,1), col = "red", bg = "red", xaxt = "n", ylab = "power")+abline(h = .80, col = "dodgerblue4")+abline(h = .90, col = "dodgerblue3")+abline(h = .95, col = "dodgerblue2")+axis(1, at = sample_seq_highres)
+    par(new=T)
+    plot(sample_seq_highres, prop_excl_zero_perN_highres_BB, pch = 22, ylim = c(0,1), col = "blue", bg = "blue", xaxt = "n", yaxt = "n", ylab = "")
+    par(new=T)
+    plot(sample_seq_highres, HDI_width_perN_highres_BB, pch = 22, ylim = c(0,1), col = "green", bg = "green", xaxt = "n", yaxt = "n", ylab = "")
+    legend(100, 0.2, legend=c("ROPE REJECT", "PROP. OF POSTERIOR > 0", "ROPE ACCEPT"),
+       col=c("red", "blue", "green"), lty=1, cex=0.8)
+}
+```
+
+Note that the Beta-Binomial model has very high power even with the doubled the effect size threshold (and ROPE range).
+
+```{r highres_zoib, eval = eval_run}
+brm_output_list_perN_highres_zoib <- list()
+sample_seq_highres <- seq(100, 130, by = 10)
+start_time <- Sys.time()
+cl <- makeCluster(rep("localhost", 10), outfile="mylog.txt")
+clusterEvalQ(cl, c(library("brms"), library("cmdstanr"), library("bayestestR")))
+clusterExport(cl, list("simul_data_list_b1max_Ysim_highres", "brm_sim_init_zoib", "sample_seq_highres"))
+registerDoParallel(cl)
+brm_output_list_perN_highres_zoib <- foreach(k = 1:length(sample_seq_highres)) %:% 
+  foreach(i = 1:1000, .verbose = T) %dopar% {
+    if(i %% 10 == 0){
+      print(paste0("############################## sequence-nr: ", k, " of ", length(sample_seq_highres), ", iteration nr: ", i," ##############################"))    
+    }
+     return(hdi(update(brm_sim_init_zoib, newdata =  simul_data_list_b1max_Ysim_highres[[k]][[i]], chains = 1, cores = 1, warmup = 1000, iter = 3000, refresh = 0, init = "0"), ci = c(.89, .95, .975)))
+  }
+end_time <- Sys.time()
+stopCluster(cl)
+saveRDS(brm_output_list_perN_highres_zoib, "PS_highres_zoib_151220_100-130.RDS")
+```
+
+
+```{r plot_power_highres_zoib, options}
+if(eval_run == FALSE){
+  sample_seq_highres <- seq(100, 130, by = 10)
+  brm_output_list_perN_highres_zoib <- readRDS("PS_highres_zoib_151220_100-130.RDS")
+  
+  prop_reject_rope_perN_highres_zoib <- c()
+  for(i in 1:length(brm_output_list_perN_highres_zoib)){
+    prop_reject_rope_perN_highres_zoib[i] <- mean(sapply(1:length(brm_output_list_perN_highres_zoib[[i]]), function(x) brm_output_list_perN_highres_zoib[[i]][[x]]$CI_low[which(brm_output_list_perN_highres_zoib[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres_zoib[[i]][[x]]$CI == 95.0)]  >  0.062))
+  }
+  
+  prop_excl_zero_perN_highres_zoib <- c()
+  for(i in 1:length(brm_output_list_perN_highres_zoib)){
+    prop_excl_zero_perN_highres_zoib[[i]] <- mean(sapply(1:length(brm_output_list_perN_highres_zoib[[i]]), function(x) brm_output_list_perN_highres_zoib[[i]][[x]]$CI_low[which(brm_output_list_perN_highres_zoib[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres_zoib[[i]][[x]]$CI == 97.5)]  > 0.0))
+  }
+  
+  HDI_width_perN_highres_zoib <- c()
+  for(i in 1:length(brm_output_list_perN_highres_zoib)){
+    HDI_width_perN_highres_zoib[[i]] <- mean(sapply(1:length(brm_output_list_perN_highres_zoib[[i]]), function(x) (brm_output_list_perN_highres_zoib[[i]][[x]]$CI_high[which(brm_output_list_perN_highres_zoib[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres_zoib[[i]][[x]]$CI == 95)] - brm_output_list_perN_highres_zoib[[i]][[x]]$CI_low[which(brm_output_list_perN_highres_zoib[[i]][[x]]$Parameter == "b_basket_f" & brm_output_list_perN_highres_zoib[[i]][[x]]$CI == 95)])  <= 0.124) == TRUE)
+  
+  }
+
+
+    plot(sample_seq_highres, prop_reject_rope_perN_highres_zoib, pch = 22, ylim = c(0,1), col = "red", bg = "red", xaxt = "n", ylab = "power")+abline(h = .80, col = "dodgerblue4")+abline(h = .90, col = "dodgerblue3")+abline(h = .95, col = "dodgerblue2")+axis(1, at = sample_seq_highres)
+    par(new=T)
+    plot(sample_seq_highres, prop_excl_zero_perN_highres_zoib, pch = 22, ylim = c(0,1), col = "blue", bg = "blue", xaxt = "n", yaxt = "n", ylab = "")
+    par(new=T)
+    plot(sample_seq_highres, HDI_width_perN_highres_zoib, pch = 22, ylim = c(0,1), col = "green", bg = "green", xaxt = "n", yaxt = "n", ylab = "")
+    legend(100, 0.2, legend=c("ROPE REJECT", "PROP. OF POSTERIOR > 0", "ROPE ACCEPT"),
+       col=c("red", "blue", "green"), lty=1, cex=0.8)
+}
+```
+</br>
+
+The zoib model reaches > 80% power in the higher-resolution simulation for all criteria at N = 130, which will therefore be the final sample size.

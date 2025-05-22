@@ -1,0 +1,232 @@
+Many decisions that people make on a daily basis are instances of so-called _value-based decisions_ that lack objectively correct answers, but instead depend on the subjective value that a decision-maker ascribes to the available alternatives, for instance when selecting a tasty meal or an entertaining movie [@kahnemanProspectTheoryAnalysis1979; @martinoGoalsUsefulnessAbstraction2023].
+According to current theory, subjective value is determined through an evidence accumulation process. 
+In this process, a person samples value-relevant information from past experiences with an object.
+This information is then used to compare available alternatives [see @bakkourHippocampusSupportsDeliberation2019; @Shadlen2016; @weberConstructingPreferencesMemory2006; but @haydenCaseEconomicValues2021; @stewartDecisionSampling2006 for alternative models that do not involve value comparisons].
+his evidence-sampling-from-memory account does not imply that evaluation is _entirely_ subjective. 
+For instance, when observing an apple, objective perceptual qualities of the apple, such as color, smell, and shape can provide important information about the quality of the apple. 
+However, these perceptual qualities can only provide information to an extent that the evaluator can relate these perceptual qualities to previous experiences (except potential innate associations such as avoiding molded or rotten food).
+For example, without any prior experiences on what perceptual qualities relate to the appetitiveness of an apple, a person would not be able to utilize this information, while a merely perceptual judgement of the color or size of the apple would not require such prior experiences.
+Indeed, instead of value- versus perceptual-based, evaluations of stimuli can be classified as representation-based (i.e., whether a mental representation of the stimulus is involved, e.g., evaluating the tastiness of food) vs. stimulus-based [i.e., whether the evaluation can made simply on the stimulus level, e.g., size or color, but also judging the pleasantness of a painting at the art gallery; @smithMentalRepresentationsDistinguish2021].
+
+Importantly, even when initial perceptual information is available to guide value-based (or representation-based) evaluations, the available value-relevant evidence is imperfect.
+A priori, the taste of any specific apple can neither be perfectly predicted solely based on color and smell, nor solely based on past experiences.
+Hence, people will generally feel some degree of uncertainty about their evaluations of an object [@koriatSubjectiveConfidenceMonitor2024].
+
+Certainty in evaluations is a key predictor of the stability and consistency of choices [@Folke2016], attitudes, and opinions [@petrocelliUnpackingAttitudeCertainty2007; @demarreeDocumentingIndividualDifferences2020; @tormalaAttitudeCertaintyAntecedents2018]. 
+Certainty in evaluations can be influenced by a variety of factors [see @brusSourcesConfidenceValuebased2021; @Kiani2014; @koriatSelfconsistencyModelSubjective2012; @Kvam2016] but particularly strong predictors of evaluation certainty are the positivity of object values [@lebretonAutomaticIntegrationConfidence2015; @leeValueCertaintyChoice2023], and value extremity [@polaniaEfficientCodingSubjective2019], with more positive and extreme values relating to higher certainty.
+
+Yet, it is unclear whether these relations are causal or correlational [@Folke2016] and despite the well-documented impacts of certainty on subjective values and resulting decisions [@tormalaAttitudeCertaintyAntecedents2018], pinpointing the exact contributors to evaluation certainty is difficult. 
+One key issue is that experimenters often lack access to the experiences underpinning evaluations and certainty.
+These experiences, however, could be important to understand how certainty arises and it has been suggested that the consistency of such experiences mainly determines certainty [@quandtConfidenceEvaluationsValuebased2022].
+
+Interestingly, the apparent relation between value extremity and certainty could also be caused by precisely this consistency of experiences.
+Specifically, in most experiments of preferences, people report their evaluations on any bounded scale [e.g., @bakkourHippocampusSupportsDeliberation2019; @Krajbich2010; @leeEmpiricalTestRole2020]. 
+If we posit that these evaluations represent the average value of the sampled evidence, and assuming that the sampled values fall inside the same scale, for values to be extreme, they also must be very _consistently_ extreme.
+For objects that are not of extreme value however, the potential variance of evidence samples is less constrained, and there need not be a relation between the degree of extremity and certainty.
+Thus, if certainty were mainly determined by the consistency of values, this would automatically result in a correlation between observed evaluation extremity and evaluation certainty.
+
+Figure 1 (left) presents a simulation to illustrate this point. 
+For the exact details of the simulation, see the Supplementary Online Material (SOM).
+Assuming that evidence is sampled on a bounded evaluation scale [^1] and that people report the average value of the sampled experience as their evaluation, the variance that samples of value-relevant evidence can take is limited by the position of the evaluation on the scale.
+The possible variance of evidence samples is very small close to the endpoints of the scale and increases strongly towards the midrange. 
+This results in a strong association between evaluation extremity and evaluation certainty, which is however, driven by the necessity of having consistent (i.e., low variance) evidence samples at the extreme ends of the evaluation scale.
+For most of the scale range, where this necessity is less pronounced, there is only a weak association between evaluation extremity and evaluation certainty.
+Yet, in this range, where evidence samples are allowed to be consistent or inconsistent up to the possible variance on this point of the scale, evaluation certainty is still strongly determined by the consistency of evidence samples.
+As a result, the relation between evaluation extremity and evaluation certainty is not a direct one, but rather a byproduct of the necessity of consistent evidence samples for extreme evaluations.
+However, as we can usually not observe the consistency of evidence samples, it is difficult to estimate the exact contribution of evaluation extremity on evaluation certainty.
+
+To provide further intuition, imagine a person evaluating the appetitiveness of a food item as 95 on a 100-point scale. 
+Now, if we assume that the evaluation represents the average of some underlying sample of value-relevant evidence on the same 100-point scale, the possible variance of the sampled evidence must be very small to result in an average of 95.
+This means that the sampled evidence must be very consistent, which would lead to a high certainty in the evaluation.
+However, if the person evaluates a food item with a value of 50, the possible variance of the sampled evidence is much larger and the sampled evidence can be much less consistent, which would lead to lower certainty in the evaluation.
+The simulation demonstrates this point by showing how observing a given evaluation restricts the possible variance of the sampled evidence.
+
+To some extent, this might also explain observed correlations between value positivity and value certainty in the literature [@lebretonAutomaticIntegrationConfidence2015; @leeValueCertaintyChoice2023].
+Specifically, when people's evaluation of most items in a study is positive, extremity and positivity would be positively correlated.
+Hence, any correlation between extremity and consistency could spillover to value positivity in a set of mostly positively evaluated items.
+This pattern complicates any conclusions about independent contributors to value certainty from experiments in which certainty, positivity and extremity have not been explicitly unconfounded.
+
+```{r fig1_make, output = FALSE, message = FALSE, include = FALSE, eval = TRUE}
+# Define the maximum variance for a given mu
+experience_variance <- function(mu) {
+  if(any(mu < -1 | mu > 1))
+    stop("mu must be in [-1,1]")
+  1 - mu^2
+}
+
+# Set the fixed lower bound as the maximum variance at mu = 0.99.
+min_var_theoretical <- experience_variance(0.99)
+
+# Define a set of mean values for the simulation (avoid extremes to prevent numerical issues)
+values <- seq(-0.95, 0.95, length.out = 1000)
+n_samples <- 100
+
+set.seed(11)  # For reproducibility
+
+# function to sample experiences based on a given value, by restraining the variance to possible values across the scale
+experiences <- sapply(values, function(v) {
+  max_var <- experience_variance(v)  # Maximum possible variance for this v
+  
+  # Sample a target variance uniformly between the fixed lower bound and max allowed variance.
+  target_var <- runif(1, min = min_var_theoretical, max = max_var)
+  
+  # For the transformed Beta:
+  # Let X ~ Beta(a, b) with support [0,1], and then Y = 2X - 1.
+  # We want E[Y] = v, so set m = (v+1)/2.
+  m <- (v + 1) / 2
+  # We need Var(Y) = target_var, so Var(X) = target_var/4.
+  # For Beta, Var(X) = m*(1-m)/(S+1) where S = a+b.
+  # Solve: m*(1-m)/(S+1) = target_var/4  =>  S = (4*m*(1-m))/target_var - 1.
+  S <- (4 * m * (1 - m)) / target_var - 1
+  # Ensure S is positive by adding small constant
+  if (S <= 0) S <- .Machine$double.eps
+  a <- m * S
+  b <- (1 - m) * S
+  
+  # Sample from the Beta distribution and then transform to [-1,1]
+  samples <- rbeta(n_samples, shape1 = a, shape2 = b)
+  transformed_samples <- 2 * samples - 1
+  transformed_samples
+})
+
+# Compute sample mean and variance
+posterior_mean <- colMeans(experiences)
+# Posterior variance = σ² / n (i.e. assuming a flat prior and normally distributed sample means)
+posterior_variance <- apply(experiences, 2, var) / n_samples  
+
+# Calculate consistency as inverse of posterior variance on log scale for plotting
+consistency <- -log(pmax(posterior_variance, .Machine$double.eps))
+
+# certainty is consistency + error
+certainty <- consistency + rnorm(length(consistency), 0, (sd(consistency)*sqrt(1/3)))
+# Store in a dataframe for plotting and convert certainty and consistency to log scale
+d_fig1 <- data.frame(value = values, certainty = certainty, consistency = consistency)
+
+# exclude infinite values after transformation
+d_fig1 <- d_fig1[d_fig1$certainty > -Inf & d_fig1$certainty < Inf, ]
+#delete 1 value for plotting
+d_fig1 <- d_fig1[d_fig1$certainty < max(d_fig1$certainty), ]
+
+# Define bin size
+bin_size <- 167
+n <- nrow(d_fig1)
+d_fig1$bin <- rep(1:ceiling(n / bin_size), each = bin_size, length.out = n)
+
+# Generate plots
+f1_full <- ggplot(d_fig1, aes(x = value, y = certainty, color = consistency)) +
+    # simulated objets
+    geom_point() +
+    # regression lines of value ~ consistency within bins
+    geom_smooth(aes(group = bin), method = "lm", se = TRUE, color = "red", size = 1) +
+    # color gradient for consistency
+    scale_color_gradientn(colours = c("#2b2b9e", "#14d814"), name = "Consistency", breaks = c((min(d_fig1$consistency)+0.1), (max(d_fig1$consistency)-0.1)), labels = c("low", "high")) +
+    labs(x = "Item Evaluation", y = "Certainty") +
+    scale_x_continuous(breaks = seq(min(d_fig1$value)+0.05, max(d_fig1$value)-0.05, length.out = 10), labels = c("low", rep(" ", 8), "high"), expand = c(0.001,0.001)) +
+    scale_y_continuous(breaks = seq(min(d_fig1$certainty), max(d_fig1$certainty), length.out = 10), limits = c(min(d_fig1$certainty), max(d_fig1$certainty)), labels = c("low", rep(" ", 8), "high")) +
+    ggtitle("Simulated Item Evaluations") +
+    theme(axis.ticks = element_blank(), axis.text = element_text(size = 14), axis.title = element_text(size = 16), legend.text = element_text(size = 14), legend.title = element_text(size = 16), plot.title = element_text(size = 16))
+
+# Extract the legend from f1_full to plot at right side of combined plot
+legend_f1 <- get_legend(
+  f1_full + theme(legend.position = "right")
+)
+
+# Remove the legend from f1_full for grid arrangement
+f1_full_no_legend <- f1_full + theme(legend.position = "none")
+
+# Implement cluster algorithm from Experiments 2-3
+dist_matrix <- dist(d_fig1$value, method = "euclidean")
+hc <- hclust(dist_matrix, method = "average")
+
+# Define number of clusters (k = n_objects / 6 to create ensemble pairs)
+n_clusters <- ceiling(length(values) / 6)
+d_fig1$cluster <- cutree(hc, k = n_clusters)
+
+# create clustered data by clustering on value and separating by certainty (i.e. the experimentally observed variable rather than consistency directly)
+clustered_data <- NULL
+for(i in unique(d_fig1$cluster)){
+  # if any cluster has less than 6 observations - skip
+  if(nrow(d_fig1[d_fig1$cluster == i, ]) < 6){
+    next
+  } else {
+    # sort by certainty
+    d_temp <- d_fig1[d_fig1$cluster == i, ]
+    d_temp <- d_temp[order(d_temp$certainty), ]
+    high_certainty <- tail(d_temp, 3)
+    low_certainty <- head(d_temp, 3)
+    high_certainty$ensemble <- "high-certainty"
+    low_certainty$ensemble <- "low-certainty"
+    clustered_data <- rbind(clustered_data, high_certainty, low_certainty)
+  }
+}
+
+# aggregate the items in each cluster
+aggregated_data <- aggregate(. ~ cluster + ensemble, data = clustered_data, FUN = mean)
+
+# Thin the data set for better visualization by selecting one cluster per .05 range on the [-1,1] scale
+aggregated_data$cut <- cut(aggregated_data$value, breaks = seq(-1, 1, by = 0.05), include.lowest = TRUE)
+
+# Initialize a dataframe to store the thinned-out data
+thinned_data <- NULL
+
+# Loop over each bin and select one cluster 
+for (b in unique(aggregated_data$cut)) {
+    subset_cut <- aggregated_data[aggregated_data$cut == b, ]
+    
+    if (nrow(subset_cut) > 0) {
+        # Take first cluster in the bin
+        selected_cluster <- aggregated_data[which(aggregated_data$cluster == subset_cut$cluster[1]),]  
+        thinned_data <- rbind(thinned_data, selected_cluster)
+    }
+}
+
+# Use the thinned data for plotting
+aggregated_data <- thinned_data
+
+f1_ensembles <- ggplot(aggregated_data, aes(x = value, y = certainty, color = ensemble)) +
+    geom_line(aes(group = cluster), color = "#d89191") +
+    geom_point(size = 3) +
+    scale_color_manual(values =  c("#14d814","#2b2b9e")) +
+    labs(x = "Average Value of items in Ensemble", y = "Average Certainty of Items in Ensemble") +
+    scale_x_continuous(breaks = seq(min(aggregated_data$value)+0.05, max(aggregated_data$value)-0.05, length.out = 10), labels = c("low", rep(" ", 8), "high"), expand = c(0.007,0.007)) +
+    scale_y_continuous(breaks = seq(min(aggregated_data$certainty), max(aggregated_data$certainty), length.out = 10), limits = c(min(aggregated_data$certainty), max(aggregated_data$certainty)), labels = c("low", rep(" ", 8), "high")) +
+    ggtitle("Resulting Value-Matched Ensemble Pairs") +
+    theme(axis.ticks = element_blank(),legend.position = "none", axis.text = element_text(size = 14), axis.title = element_text(size = 16), plot.title = element_text(size = 16))
+
+# Arrange plots with the extracted legend
+final_plot <- plot_grid(f1_full_no_legend, f1_ensembles, legend_f1, 
+                        nrow = 1, rel_widths = c(1, 1, 0.2))
+```
+
+(ref:figure1-caption) Left panel: simulation of object evaluations (x-axis) and evaluation certainty (y-axis) by a theoretical evaluator. Color of dots indicates consistency of the sampled evidence used in each object evaluation. The consistency of sampled evidence is constrained by evaluation extremity (see SOM for details on simulation). Certainty is directly determined by consistency plus an error term representing unobserved influences on certainty. The red regression lines indicate the relationship between evaluation and evaluation certainty divided into 6 bins across the x-axis. There is a strong relation between evaluations and certainty towards the endpoints of the scale (i.e., for high evaluation extremity) but no significant relationship in the midrange. The color progression across the y-axis shows how certainty is determined by consistency throughout the entire scale range. Right panel: Pairs of 20 ensembles are created from the simulated objects by clustering objects with similar evaluations and grouping them within clusters to maximize the difference in evaluation certainty within pairs. This results in value-matched pairs of ensembles, that can be used to investigate the impact of consistency on evaluation certainty between the matched pairs (connected by light-red lines), while experimentally eliminating the impact of the matching variable (i.e., item evaluations).
+
+The main objective of this paper is to systematically eliminate potential confounds across predictors of evaluation certainty, such as evaluation extremity and evaluation positivity, to infer whether these factors are unique contributors to evaluation certainty.
+To this end, we leverage the phenomenon of ensemble perception.
+Ensemble perception describes the phenomenon that the visual system tends to encode summary representations (i.e., statistical moments) of grouped stimuli, especially when an overarching representation can be formed from these objects [@whitneyEnsemblePerception2018]. 
+Intuitive examples of ensemble perception are perceiving a combination of many trees as a forest, or a group of people as a crowd. 
+Experimentally, ensemble perception has been demonstrated on low-level visual percepts such as people encoding the average motion, brightness or orientation in a set of objects [@bauerDoesStevenssPower2009; @watamaniukHumanVisualSystem1992], and on higher-level percepts such encoding the average emotional state of a crowd of faces [@habermanAveragingFacialExpression2009].
+
+Ensemble perception extends to evaluations of objects, too.
+For instance, ensemble perception has been demonstrated when people judge the attractiveness of a crowd of faces [@walkerHierarchicalEncodingMakes2014] or the average price in a set of consumer goods, even if participants did not explicitly remember the individual goods [@yamanashileibFleetingImpressionsEconomic2020]. 
+Importantly, it has been shown that these ensemble evaluations constitute an integration of the average value of *all* items in the ensemble rather than relying on exemplar items or merely a subset of the items [@yamanashileibFleetingImpressionsEconomic2020].
+Here, we leverage this phenomenon as a methodological tool to combine multiple objects into ensembles to investigate how the certainty of evaluations of these ensembles would differ for ensembles that are matched on some average characteristic of the objects in the ensemble, such as value positivity or value extremity, to investigate whether equalizing these factors would result in equal evaluation certainty.
+
+Crucially, for individual objects, equal value positivity and extremity are merely observed quantities.
+By combining items into ensembles however, we can systematically construct pairs of ensembles that are equal on, for example, value positivity or value extremity to experimentally investigate the impact of these factors on evaluation certainty. 
+For instance, as Figure 1 (right) demonstrates, it is possible to create pairs of ensembles that are of equal value positivity (in terms of the average value positivity of the items contained in the ensemble), while the items in the ensemble have different evaluation certainty. 
+This allows for testing whether, if people evaluate the ensemble, the differences in certainty between pairs (i.e., the dots connected by light-red lines in Figure 1) would remain, or whether, because of equalizing value positivity, there would be no remaining differences in evaluation certainty of the ensemble. 
+Hence, if there were no more differences in evaluation certainty between the ensemble pairs, this would strongly suggest that value positivity would be the main contributor to evaluation certainty.
+
+```{r fig1, fig.cap = "(ref:figure1-caption)\\label{fig:figure1}", warning=FALSE, message=FALSE, eval = TRUE, cache = FALSE, include = TRUE, fig.height=6 ,fig.width=14, out.width=450}
+
+print(final_plot)
+
+```
+
+In four experiments, we systematically construct ensembles of everyday objects (foods and consumer goods; henceforth referred to as the _components_ of an ensemble) to investigate the factors contributing to evaluation certainty by systematically _varying_ potential contributors to evaluation certainty, while experimentally _equalizing_ other potential contributors.
+Specifically, we focus on disentangling the effects of consistency within and between subjective values of components in an ensemble, value positivity and extremity, and direct effects of component evaluation certainty on ensemble evaluation certainty.
+Table 1 provides an overview of which factors were equalized and varied in the different experiments and the *Ensemble Creation* part of the Methods section provides details about the algorithm used for creating the ensembles.
+To foreshadow the results, we find unique impacts of value positivity, value extremity, and the consistency between, but not within, components on ensemble evaluation certainty.
+Moreover, there are persistent effects of component evaluation certainty on ensemble evaluation certainty, when equalizing both value positivity and value extremity.
+These findings indicate a complex and partially independent interplay of factors in shaping certainty in evaluations.
+

@@ -1,0 +1,134 @@
+---
+title             : "Disentangling the Multifaceted Nature of Certainty in Evaluations"
+shorttitle        : "The Multifaceted Nature of Certainty in Evaluations"
+
+author: 
+  - name          : "Julian Quandt"
+    affiliation   : "1, 2"
+    corresponding : yes    # Define only one corresponding author
+    address       : "Welthandesplatz 1, D5, 1020 Vienna, Austria"
+    email         : "julian_quandt@live.de"
+  - name          : "Bernd Figner"
+    affiliation   : "2"
+  - name          : "Rob W. Holland"
+    affiliation   : "2"
+  - name          : "Maria Teresa Carere"
+    affiliation   : "2"
+  - name          : "Marijn Eversdijk"
+    affiliation   : "2,3"
+  - name          : "Harm Veling"
+    affiliation   : "2, 4"
+
+
+affiliation:
+  - id            : "1"
+    institution   : "WU Vienna University of Economics and Business"
+  - id            : "2"
+    institution   : "Behavioural Science Institute, Radboud University"
+  - id            : "3"
+    institution   : "Tilburg University"
+  - id            : "4"
+    institution   : "Consumption and Healthy Lifestyles, Wageningen University and Research"
+
+
+authornote: |
+
+  All preregistrations, materials and data are openly available on the Open Science Framework (OSF) under https://osf.io/9y38n/. The authors do not have any conflicts of interest to disclose. The work has previously been presented at lab meetings and seminars at Radboud University. The ideas or data have not been shared in any form outside of the authors' institutions and have not been uploaded outside of the OSF. We want to thank all participants who took part in the studies for their time and effort. We also want to thank the reviewers for their constructive feedback and suggestions.
+
+abstract: |
+
+  People hold their opinions and evaluations of objects with varying degrees of certainty. Understanding the nature of evaluation certainty is important as it is a strong predictor of behavior. Several factors that impact certainty have been identified in past research, including value positivity, value extremity, and consistency in value-relevant evidence. However, it remains unknown whether these factors contribute uniquely to certainty or are statistically confounded. The present work discusses four experiments (total *N* = 372) to disentangle these factors by leveraging the phenomenon of ensemble perception. We created pairs of ensembles (food baskets and retail good bundles) that are experimentally equalized on value positivity, value extremity, or evidence consistency, while systematically varying in evaluation certainty or evidence consistency. The results show independent contributions of value positivity, and value extremity, but not evidence consistency on ensemble evaluation certainty. Neither of the equalized factors fully accounts for evaluation certainty in the created ensembles, suggesting that it is a complex construct influenced by multiple independent factors.
+  
+keywords          : "evaluation certainty, ensemble perception, value-based choice, confidence"
+wordcount         : "10248"
+
+bibliography      : ["../baskets_2020.bib"]
+
+floatsintext      : no
+figurelist        : yes
+tablelist         : yes
+footnotelist      : yes
+linenumbers       : yes
+mask              : no
+draft             : no
+
+header-includes:
+  - |
+    \makeatletter
+    \renewcommand{\paragraph}{\@startsection{paragraph}{4}{\parindent}%
+      {0\baselineskip \@plus 0.2ex \@minus 0.2ex}%
+      {-1em}%
+      {\normalfont\normalsize\bfseries\typesectitle}}
+    
+    \renewcommand{\subparagraph}[1]{\@startsection{subparagraph}{5}{1em}%
+      {0\baselineskip \@plus 0.2ex \@minus 0.2ex}%
+      {-\z@\relax}%
+      {\normalfont\normalsize\bfseries\itshape\hspace{\parindent}{#1}\textit{\addperi}}{\relax}}
+    \makeatother
+    \DeclareUnicodeCharacter{394}{$\Delta$}
+    \DeclareUnicodeCharacter{956}{$\mu$}
+    \setlength{\parskip}{0pt}
+    \usepackage{docmute}
+    \usepackage{xcolor}
+    \usepackage{setspace}
+    \captionsetup[figure]{font={stretch=1,scriptsize, up}}
+
+csl               : "`r here::here('./apa7.csl')`"
+documentclass     : "apa7"
+output            : 
+  papaja::apa6_pdf:
+    latex_engine: pdflatex
+    dev: cairo_pdf
+mainfont: Times New Roman
+sansfont: Times New Roman
+monofont: DejaVuSansMono.ttf 
+mathfont: texgyredejavu-math.otf 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache = T)
+source(here::here("01_analyses/00_functions/00_init_scripts.R")) # this script contains package loading and some other stuff
+source(here::here("01_analyses/00_functions/02_brms_helpers.R")) # this script contains helper functions used to plot and analyze brms results
+source(here::here("01_analyses/00_functions/03_data_helpers.R")) # this contains some additional helper functions for less verbose standardizing of variables etc.
+# source(here::here("01_analyses/00_functions/osf_auth.R")) # this file needs to be sourced to authenticate with OSF. The code in the repository is of course not working, but for downloading the data this should not be necessary as its already a public repo
+fit_models <- FALSE # set this to TRUE if you want to refit the models during compilation or to fit the models manually first. if set to FALSE it will directly read RDS files that need to exist in the folder "here::here("01_analyses/fitted_models/")"
+```
+
+# Public Significance Statement
+
+In today's world, characterized by an overwhelming variety of choice alternatives, understanding what drives certainty in the evaluations of these alternatives is crucial.
+High certainty in evaluations leads to more stable attitudes and behaviors, which are less likely to change over time. 
+This research directly addresses the complex nature of evaluation certainty, a poorly understood yet critical aspect of decision-making. 
+By identifying and isolating three specific factors that could contribute to certainty — value positivity, value extremity, and evidence consistency — this study not only advances our theoretical understanding but also has practical implications. 
+For instance, better insights into evaluation certainty can help in designing more effective interventions aimed at promoting sustainable and healthy behavior.
+Thus, by providing crucial insights into the underpinnings of evaluation certainty, this research paves the way for strategies that could influence people's evaluations and attitudes in more predictable and enduring ways.
+
+
+\clearpage
+
+
+
+```{r child = "01_introduction.Rmd"}
+```
+
+```{r child = "02_Experiment1.Rmd"}
+```
+
+```{r child = "03_Experiment2.Rmd"}
+```
+
+```{r child = "04_Experiment3.Rmd"}
+```
+
+```{r child = "05_Experiment4.Rmd"}
+```
+
+```{r child = "06_discussion.Rmd"}
+```
+
+[^1]: It should be noted that when not assuming that the sampled evidence is restrained to the scale of the reported evaluations, the argument about limited variance of evidence samples at the scale endpoints would not necessarily apply, and there could be different reasons for a relation between evaluation extremity and certainty [@polaniaEfficientCodingSubjective2019].
+[^2]: The test against the ROPE indicates how much of the posterior falls inside of the ROPE. 
+
+# References
+
+

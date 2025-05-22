@@ -1,0 +1,593 @@
+---
+title: "Experiment 2 - Data Processing"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    code_download: true
+    code_folding: hide
+    hightlight: github
+    theme: united
+    css: "../../style/style.css"
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    includes:
+      in_header: "../../style/header.html"
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../data_codebook/") })
+---
+
+```{r setup, include=FALSE}
+require(knitr)
+knitr::opts_chunk$set(echo = T, warning = F, cache = F)
+options(width = 80)
+options(scipen = 10)
+source(here::here("01_analyses/00_functions/00_init_scripts.R"))
+# source("../00_functions/osf_auth.R") # this line has to be commented out when reproducing this
+source(here::here("01_analyses/00_functions/01_rmd_helpers.R"))
+source(here::here("01_analyses/00_functions/03_data_helpers.R"))
+run_local = FALSE
+```
+
+
+
+# Download Data from OSF
+
+First we download the Raw Data file from OSF. 
+It contains all participants who have (almost) completed the study and were compensated on prolific.
+The prolific IDs have been replaced with numbers before uploading.
+
+```{r download_raw_data}
+
+if(run_local){
+  # one-time only anonymization of data to store it on OSF after processing
+  raw_data <- read.csv("../../../99_RAW_DATA/01_exp2/data.csv", stringsAsFactors = F)
+  set.seed(1)
+  subject_ids_old <- unique(raw_data$subject)
+  subject_ids_new <- sample(1:length(unique(raw_data$subject)), replace = F)
+  for(i in 1:nrow(raw_data)){
+    raw_data$subject[i] <- subject_ids_new[which(raw_data$subject[i] == subject_ids_old)]
+    raw_data$ppn[i] <- raw_data$subject[i]
+  }
+  raw_data$subject <- as.integer(raw_data$subject)
+  raw_data$ppn <- as.integer(raw_data$ppn)
+  write.table(raw_data, "../../../99_RAW_DATA/01_exp2/data_anom.csv", row.names = FALSE, sep = ",")
+  raw_data_anom <- read.csv("../../../99_RAW_DATA/01_exp2/data_anom.csv")
+  stopifnot(identical(raw_data, raw_data_anom))
+  write.table(cbind(subject_ids_old, subject_ids_new), "../../../99_RAW_DATA/01_exp2/ident_file.csv", row.names = FALSE, sep = ",")
+  rm(subject_ids_old, subject_ids_new)
+}
+
+osf_node <- osf_retrieve_node("9y38n") # retrieve OSF node
+osf_RAW_datafolder <- osf_ls_files(osf_node, path = "RAW_DATA\\Exp2", n_max = Inf) # get data folder
+raw_data <- osf_load_file(osf_RAW_datafolder$id[1], osf_RAW_datafolder$name[1], 
+                          stringsAsFactors = F)
+
+```
+
+
+# Split Data
+
+Now, we need to split the raw data file into its components (i.e. the different tasks).
+
+## Single Food Evaluations
+
+```{r extract_foodrating_data}
+#extract food ratings
+single_eval_data <- subset(raw_data, trial_type == "image-slider-response" & 
+                             response_cat == "value")
+# select relevant columns for rating data of single items
+single_eval_data <- single_eval_data[,which(names(single_eval_data) %in% 
+                                              c("rt", "response", "stim_name", 
+                                                 "subject", "subject_nr", 
+                                                 "trial_nr", "block"))]
+# rename response to evaluation
+names(single_eval_data)[which(names(single_eval_data) == "response")] <- 
+  "evaluation"
+
+# single_eval_data <- single_eval_data[which(single_eval_data$evaluation > -999),]
+
+################################################################
+# Variable Explanations:
+## RT: response time for each rating
+## evaluation: evaluation (0-200)
+## stim_name: the respective item that was presented
+## subject:  the subject-key that identifies unique participants
+## trial_nr: the number of the respective trial
+## block: which block is the rating from 
+################################################################
+
+# fix variable types
+single_eval_data$evaluation <- as.numeric(single_eval_data$evaluation)
+
+# clean stimulus names
+for (i in 1:nrow(single_eval_data)){
+  single_eval_data$stim_name[i] <- gsub('.png','',
+                                        basename(single_eval_data$stim_name[i]))
+}
+```
+
+
+### Data preview and codebook
+
+`r ncol(single_eval_data)` relevant variables were extracted:
+
+<div class="table-container">
+
+```{r single_evaluation_codebook, echo = F}
+vars_single_eval <- colnames(single_eval_data)
+varexplanation_single_eval <- 
+  c("response time for each evaluation", 
+    "evaluation (0-200)", 
+    "the respective item that was presented", 
+    "the subject-key that identifies unique participants",
+    "the number of the respective trial", 
+    "which block is the rating from")
+
+# Variable Explanations:
+## RT: response time for each rating
+## evaluation: evaluation (0-200)
+## stim_name: the file-path of the respective item that was presented
+## subject:  the subject-key that identifies unique participants
+## trial_nr: the number of the respective trial
+## block: which block is the rating from 
+
+tcb_single_eval <- make_table(data.frame(cbind(vars_single_eval, 
+                                               varexplanation_single_eval)))
+tcb_single_eval <- set_header_labels(tcb_single_eval, 
+                                     vars_single_eval = "variable", 
+                               varexplanation_single_eval = "explanation")
+tcb_single_eval
+```
+
+The data file looks like this:
+
+<div class="table-container">
+`r make_table(head(single_eval_data), ali = "right", aw = 2)`
+</div>
+
+
+
+## Single Food Confidence Ratings
+
+```{r extract_foodconfidence_data}
+#extract food ratings
+single_conf_data <- subset(raw_data, trial_type == "image-slider-response" & 
+                             response_cat == "confidence")
+# select relevant columns for rating data of single items
+single_conf_data <- single_conf_data[,which(names(single_conf_data) %in% 
+                                              c("rt", "response", "stim_name", 
+                                                 "subject", "subject_nr", 
+                                                 "trial_nr", "block"))]
+# rename response to evaluation
+names(single_conf_data)[which(names(single_conf_data) == "response")] <- 
+  "confidence"
+
+
+################################################################
+# Variable Explanations:
+## RT: response time for each rating
+## evaluation: evaluation (0-200)
+## stim_name: the respective item that was presented
+## subject:  the subject-key that identifies unique participants
+## trial_nr: the number of the respective trial
+## block: which block is the rating from 
+################################################################
+
+# fix variable types
+single_conf_data$confidence <- as.numeric(single_conf_data$confidence)
+
+# clean stimulus names
+for (i in 1:nrow(single_conf_data)){
+  single_conf_data$stim_name[i] <- gsub('.png','',
+                                        basename(single_conf_data$stim_name[i]))
+}
+```
+
+
+### Data preview and codebook
+
+`r ncol(single_conf_data)` relevant variables were extracted:
+
+<div class="table-container">
+
+```{r single_confidence_codebook, echo = F}
+vars_single_conf <- colnames(single_conf_data)
+varexplanation_single_conf <- 
+  c("response time for each confidence rating", 
+    "confidence rating (0-200)", 
+    "the respective item that was presented", 
+    "the subject-key that identifies unique participants",
+    "the number of the respective trial", 
+    "which block is the rating from")
+
+# Variable Explanations:
+## RT: response time for each rating
+## evaluation: evaluation (0-200)
+## stim_name: the file-path of the respective item that was presented
+## subject:  the subject-key that identifies unique participants
+## trial_nr: the number of the respective trial
+## block: which block is the rating from 
+
+tcb_single_conf <- make_table(data.frame(cbind(vars_single_conf, 
+                                               varexplanation_single_conf)))
+tcb_single_conf <- set_header_labels(tcb_single_conf, 
+                                     vars_single_conf = "variable", 
+                               varexplanation_single_conf = "explanation")
+tcb_single_conf
+```
+
+The data file looks like this:
+
+<div class="table-container">
+`r make_table(head(single_conf_data), ali = "right", aw = 2)`
+</div>
+
+
+## Basket Evaluations
+
+```{r extract_basketrating_data}
+#extract basket evaluations
+basket_eval_data <- subset(raw_data, trial_type == "html-slider-response" & response_cat == "value")
+# select relevant columns for rating data of single items
+basket_eval_data <- basket_eval_data[,which(names(basket_eval_data) %in% 
+                                              c("rt", "response", "stim_name", 
+                                                "subject", "trial_nr",
+                                                "rep_nr", "item1_value", 
+                                                "item1_confidence", 
+                                                "item1_valueCat", 
+                                                "item1_confidenceCat",
+                                                "item2_value", 
+                                                "item2_confidence", 
+                                                "item2_valueCat", 
+                                                "item2_confidenceCat",
+                                                "item3_value", 
+                                                "item3_confidence", 
+                                                "item3_valueCat", 
+                                                "item3_confidenceCat",
+                                                "item1_pos", "item2_pos", 
+                                                "item3_pos", "item1_name", 
+                                                "item2_name", "item3_name",
+                                                "basket_cat", 
+                                                "basket_value", 
+                                                "basket_conf", 
+                                                "basket_cluster", 
+                                                "cluster_size", 
+                                                "basket_nr" 
+                                                ))]
+# rename response to evaluation
+names(basket_eval_data)[which(names(basket_eval_data) == "response")] <- 
+  "evaluation"
+
+
+# fix variable types
+basket_eval_data$evaluation <- as.numeric(basket_eval_data$evaluation)
+
+# rename baskets
+for(i in 1:nrow(basket_eval_data)){
+  
+  # extract individual items of baskets
+  # remove file path and concatenate them to single string
+  # items should already be sorted but sorting is applied gain to be sure
+  basket_eval_data$stim_name[i] <- paste(sort(as.vector(
+    sapply(strsplit(basket_eval_data$stim_name[i], ","), 
+           function(x) gsub('.png','',basename(x))))), collapse = "")
+  basket_eval_data$item1_name[i] <- gsub('.png','',
+                                      basename(basket_eval_data$item1_name[i]))
+  basket_eval_data$item2_name[i] <- gsub('.png','',
+                                      basename(basket_eval_data$item2_name[i]))
+  basket_eval_data$item3_name[i] <- gsub('.png','',
+                                      basename(basket_eval_data$item3_name[i]))
+  
+}
+
+```
+
+
+### Data preview and codebook
+
+`r ncol(basket_eval_data)` relevant variables were extracted:
+
+<div class="table-container">
+
+```{r basket_evaluation_codebook, echo = F}
+vars_basket_eval <- colnames(basket_eval_data)
+varexplanation_basket_eval <- 
+  c("response time for each rating", 
+    "basket evaluation (0-200)", 
+    "the items in the respective basket that was presented", 
+    "the subject-key that identifies unique participants",
+    "the number of the respective trial", 
+    "which repetition of the rating is this? (1-3)",
+    "valuation of the first item in basket ",
+    "confidence-rating of the first item in basket",
+    "valuation of the second item in basket ",
+    "confidence-rating of the second item in basket",
+    "valuation of the third item in basket ",
+    "confidence-rating of the third item in basket",
+    "Where was item 1 positioned when displaying the basket in this trial?",
+    "Where was item 2 positioned when displaying the basket in this trial?",
+    "Where was item 3 positioned when displaying the basket in this trial?",
+    "Which item was item 1?",
+    "Which item was item 2?",
+    "Which item was item 3?",
+    "which category is this basket (high vs. low in confidence)",
+    "average value of items in the basket",
+    "average confidence of items in the basket",
+    "cluster number that the basket was from for specific participant",
+    "size of the cluster",
+    "basket number within cluster"
+    )
+
+tcb_basket_eval <- make_table(data.frame(cbind(vars_basket_eval, 
+                                               varexplanation_basket_eval)))
+tcb_basket_eval <- set_header_labels(tcb_basket_eval, 
+                                     vars_basket_eval = "variable", 
+                               varexplanation_basket_eval = "explanation")
+tcb_basket_eval
+```
+
+The data file looks like this:
+
+<div class="table-container">
+`r make_table(head(basket_eval_data), ali = "right", aw = 2)`
+</div>
+
+
+
+
+
+
+
+
+## Basket Confidence Ratings
+
+```{r extract_basketconfidence_data}
+#extract basket evaluations
+basket_conf_data <- subset(raw_data, trial_type == "html-slider-response" & response_cat == "confidence")
+# select relevant columns for rating data of single items
+basket_conf_data <- basket_conf_data[,which(names(basket_conf_data) %in% 
+                                              c("rt", "response", "stim_name", 
+                                                "subject", "trial_nr",
+                                                "rep_nr", "item1_value", 
+                                                "item1_confidence", 
+                                                "item1_valueCat", 
+                                                "item1_confidenceCat",
+                                                "item2_value", 
+                                                "item2_confidence", 
+                                                "item2_valueCat", 
+                                                "item2_confidenceCat",
+                                                "item3_value", 
+                                                "item3_confidence", 
+                                                "item3_valueCat", 
+                                                "item3_confidenceCat",
+                                                "item1_pos", "item2_pos", 
+                                                "item3_pos", "item1_name", 
+                                                "item2_name", "item3_name",
+                                                "basket_cat", 
+                                                "basket_value", 
+                                                "basket_conf", 
+                                                "basket_cluster", 
+                                                "cluster_size", 
+                                                "basket_nr" 
+                                                ))]
+# rename response to evaluation
+names(basket_conf_data)[which(names(basket_conf_data) == "response")] <- 
+  "confidence"
+
+
+# fix variable types
+basket_conf_data$confidence <- as.numeric(basket_conf_data$confidence)
+
+# rename baskets
+for(i in 1:nrow(basket_conf_data)){
+  
+  # extract individual items of baskets
+  # remove file path and concatenate them to single string
+  # items should already be sorted but sorting is applied gain to be sure
+  basket_conf_data$stim_name[i] <- paste(sort(as.vector(
+    sapply(strsplit(basket_conf_data$stim_name[i], ","), 
+           function(x) gsub('.png','',basename(x))))), collapse = "")
+  basket_conf_data$item1_name[i] <- gsub('.png','',
+                                      basename(basket_conf_data$item1_name[i]))
+  basket_conf_data$item2_name[i] <- gsub('.png','',
+                                      basename(basket_conf_data$item2_name[i]))
+  basket_conf_data$item3_name[i] <- gsub('.png','',
+                                      basename(basket_conf_data$item3_name[i]))
+  
+}
+
+```
+
+
+### Data preview and codebook
+
+`r ncol(basket_conf_data)` relevant variables were extracted:
+
+<div class="table-container">
+
+```{r basket_confidence_codebook, echo = F}
+vars_basket_conf <- colnames(basket_conf_data)
+varexplanation_basket_conf <- 
+  c("response time for each rating", 
+    "basket confidence (0-200)", 
+    "the items in the respective basket that was presented", 
+    "the subject-key that identifies unique participants",
+    "the number of the respective trial", 
+    "which repetition of the rating is this? (1-3)",
+    "valuation of the first item in basket ",
+    "confidence-rating of the first item in basket",
+    "valuation of the second item in basket ",
+    "confidence-rating of the second item in basket",
+    "valuation of the third item in basket ",
+    "confidence-rating of the third item in basket",
+    "Where was item 1 positioned when displaying the basket in this trial?",
+    "Where was item 2 positioned when displaying the basket in this trial?",
+    "Where was item 3 positioned when displaying the basket in this trial?",
+    "Which item was item 1?",
+    "Which item was item 2?",
+    "Which item was item 3?",
+    "which category is this basket (high vs. low in confidence)",
+    "average value of items in the basket",
+    "average confidence of items in the basket",
+    "cluster number that the basket was from for specific participant",
+    "size of the cluster",
+    "basket number within cluster"
+    )
+
+tcb_basket_conf <- make_table(data.frame(cbind(vars_basket_conf, 
+                                               varexplanation_basket_conf)))
+tcb_basket_conf <- set_header_labels(tcb_basket_conf, 
+                                     vars_basket_conf = "variable", 
+                               varexplanation_basket_conf = "explanation")
+tcb_basket_conf
+```
+
+The data file looks like this:
+
+<div class="table-container">
+`r make_table(head(basket_conf_data), ali = "right", aw = 2)`
+</div>
+
+
+
+# Check whether all data was extracted
+
+```{r test_data_complete}
+stopifnot(nrow(single_eval_data)+nrow(single_conf_data)+
+            nrow(basket_eval_data)+nrow(basket_conf_data) == nrow(raw_data))
+```
+
+
+
+# Add Evaluations and Confidence to respective other data frames
+
+To make analyses easier, the evaluations from the food-evaluation and basket-evaluation files will be added to the respective confidence files and vice versa.
+
+```{r add_vars_to_eval_con}
+
+# make row identifiers
+## single evaluations
+single_eval_data$r_ident <- paste(single_eval_data$subject, single_eval_data$stim_name, single_eval_data$trial_nr, sep = "-")
+### test for identical length
+stopifnot(length(unique(single_eval_data$r_ident)) == nrow(single_eval_data)) 
+## single confidence
+single_conf_data$r_ident <- paste(single_conf_data$subject, single_conf_data$stim_name, single_conf_data$trial_nr, sep = "-")
+### test for identical length
+stopifnot(length(unique(single_conf_data$r_ident)) == nrow(single_conf_data))
+## basket evaluation
+basket_eval_data$r_ident <- paste(basket_eval_data$subject, basket_eval_data$stim_name, basket_eval_data$trial_nr, sep = "-")
+### test for identical length
+stopifnot(length(unique(basket_eval_data$r_ident)) == nrow(basket_eval_data))
+## basket confidence
+basket_conf_data$r_ident <- paste(basket_conf_data$subject, basket_conf_data$stim_name, basket_conf_data$trial_nr, sep = "-")
+### test for identical length
+stopifnot(length(unique(basket_conf_data$r_ident)) == nrow(basket_conf_data))
+
+#add relevant columns
+single_eval_data <- merge(single_eval_data, single_conf_data[, c("r_ident", "confidence")], by="r_ident")
+single_conf_data <- merge(single_conf_data, single_eval_data[, c("r_ident", "evaluation")], by="r_ident")
+
+basket_eval_data <- merge(basket_eval_data, basket_conf_data[, c("r_ident", "confidence")], by="r_ident")
+basket_conf_data <- merge(basket_conf_data, basket_eval_data[, c("r_ident", "evaluation")], by="r_ident")
+```
+
+
+# Add value diversity and mean confidence rating variables
+
+```{r add_IVs}
+for(i in 1:nrow(basket_eval_data)){
+  basket_eval_data$value_sd[i] <- sd(c(basket_eval_data$item1_value[i], basket_eval_data$item2_value[i], basket_eval_data$item3_value[i]))
+  basket_eval_data$confidence_mean[i] <- mean(c(basket_eval_data$item1_confidence[i], basket_eval_data$item2_confidence[i], basket_eval_data$item3_confidence[i]))
+  basket_eval_data$basket_confidence_cat[i] <- ifelse(basket_eval_data$basket_cat[i] %in% c("Chigh_Dlow", "Chigh_Dhigh"), "high", "low")
+  basket_eval_data$basket_diversity_cat[i] <- ifelse(basket_eval_data$basket_cat[i] %in% c("Chigh_Dhigh", "Clow_Dhigh"), "high", "low")
+  
+}
+
+for(i in 1:nrow(basket_conf_data)){
+  basket_conf_data$value_sd[i] <- sd(c(basket_conf_data$item1_value[i], basket_conf_data$item2_value[i], basket_conf_data$item3_value[i]))
+  basket_conf_data$confidence_mean[i] <- mean(c(basket_conf_data$item1_confidence[i], basket_conf_data$item2_confidence[i], basket_conf_data$item3_confidence[i]))
+  basket_conf_data$basket_confidence_cat[i] <- ifelse(basket_conf_data$basket_cat[i] %in% c("Chigh_Dlow", "Chigh_Dhigh"), "high", "low")
+  basket_conf_data$basket_diversity_cat[i] <- ifelse(basket_conf_data$basket_cat[i] %in% c("Chigh_Dhigh", "Clow_Dhigh"), "high", "low")
+  
+}
+```
+
+# Add markers for preregistered exclusion criteria
+
+```{r mark_exclusions}
+pp_exclude_list <- c()
+
+for(i in unique(single_eval_data$subject)){
+  tmp_dat <- subset(single_eval_data, subject == i)
+  tmp_inter <- hdi(tmp_dat$evaluation, credMass = .79, allowSplit = T)
+  if(abs(tmp_inter[1]-tmp_inter[2]) <= 10){
+    pp_exclude_list <- append(pp_exclude_list, i)
+  }
+}
+
+for(i in unique(single_conf_data$subject)){
+  tmp_dat <- subset(single_conf_data, subject == i)
+  tmp_inter <- hdi(tmp_dat$confidence, credMass = .79, allowSplit = T)
+  if(abs(tmp_inter[1]-tmp_inter[2]) <= 10){
+    pp_exclude_list <- append(pp_exclude_list, i)
+  }
+}
+
+pp_exclude_list <- unique(pp_exclude_list)
+
+
+for(i in 1:nrow(single_eval_data)){
+  single_eval_data$prereg_exclusion[i] <- 
+    ifelse(single_eval_data$subject[i] %in% pp_exclude_list, 1, 0)
+}
+
+
+for(i in 1:nrow(single_conf_data)){
+  single_conf_data$prereg_exclusion[i] <- 
+    ifelse(single_conf_data$subject[i] %in% pp_exclude_list, 1, 0)
+}
+
+for(i in 1:nrow(basket_eval_data)){
+  basket_eval_data$prereg_exclusion[i] <- 
+    ifelse(basket_eval_data$subject[i] %in% pp_exclude_list, 1, 0)
+}
+
+for(i in 1:nrow(basket_conf_data)){
+  basket_conf_data$prereg_exclusion[i] <- 
+    ifelse(basket_conf_data$subject[i] %in% pp_exclude_list, 1, 0)
+}
+```
+
+
+# Upload data to OSF
+
+
+```{r upload_to_osf, output = FALSE, eval = FALSE}
+# mark upload folder
+processed_data_dir <- osf_ls_files(osf_node)[which(osf_ls_files(osf_node)$name == "processed_data"),]
+
+# single evaluations
+write.csv(single_eval_data, "single_eval_data_exp2.csv")
+osf_upload_file(osf_node = osf_node, remote_path = "single_eval_data_exp2.csv",
+                local_path = "single_eval_data_exp2.csv", conflicts = "overwrite",
+                local_file_remove = TRUE, osf_direct_dir = processed_data_dir)
+
+# single confidence
+write.csv(single_conf_data, "single_conf_data_exp2.csv")
+osf_upload_file(osf_node = osf_node, remote_path = "single_conf_data_exp2.csv",
+                local_path = "single_conf_data_exp2.csv", conflicts = "overwrite",
+                local_file_remove = TRUE, osf_direct_dir = processed_data_dir)
+
+# basket evaluations
+write.csv(basket_eval_data, "basket_eval_data_exp2.csv")
+osf_upload_file(osf_node = osf_node, remote_path = "basket_eval_data_exp2.csv",
+                local_path = "basket_eval_data_exp2.csv", conflicts = "overwrite",
+                local_file_remove = TRUE, osf_direct_dir = processed_data_dir)
+
+# basket confidence
+write.csv(basket_conf_data, "basket_conf_data_exp2.csv")
+osf_upload_file(osf_node = osf_node, remote_path = "basket_conf_data_exp2.csv",
+                local_path = "basket_conf_data_exp2.csv", conflicts = "overwrite",
+                local_file_remove = TRUE, osf_direct_dir = processed_data_dir)
+```

@@ -1,0 +1,99 @@
+/* Whole document: */
+body{
+  font-family: Helvetica;
+  font-size: 16pt;
+  line-height:32px;
+  /*for a background-image: <background-image: url("bsi_header.jpg");*/
+  background-color: rgba(233,229,226); }
+/* Headers */
+h1{
+  font-size: 25pt;
+  margin-top: 40px;
+
+}
+
+h2{
+  font-size: 20pt;
+}
+
+h3,h4,h5,h6 {
+  font-size: 16pt;
+}
+
+/*This changes the picture in the header */
+.entry-image {
+  min-height: 250px;
+  /*TODO: put markdownfiles in the same folder to solve the problem that occurs
+  when referring to the image*/
+  background-image: url("bsi_header.jpg"); }
+
+/*this allows for a logo in the very upper-right corner if you add it as
+an html-image referring with class=ribbon */
+.ribbon {
+  position:absolute;
+  top:0;
+  right:0; }
+
+/*change title color*/
+h1.title {
+  color: rgba(189,49,24);
+  }
+
+.entry-content {
+  line-height: 1.5;
+}
+
+li {
+  margin: inherit 0;
+}
+
+th {
+  background-color: rgba(189,49,24, 0.8);
+}
+tr.even {
+  background-color: rgba(233,229,226, 0.8);
+}
+tr.odd {
+  background-color: rgba(248, 248, 246, 0.8) !important;
+}
+
+.tabwid table tr {
+background-color: white;
+}
+
+.main-container {
+    margin-left: 200px !important;
+}
+
+.table-container
+{
+	width: 100%;
+	overflow-y: auto;
+	_overflow: auto;
+	margin: 0 0 1em;
+}
+
+#head {
+    background-image:url('bsi_header.jpg');
+    background-repeat: repeat-x;
+    width: 100%;
+    height: 20px;
+    position: absolute;
+}
+
+.center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
+}
+
+#TOC {
+    margin: 0px 0px 0px -200px !important;
+}
+
+/*horizontal lines between sections*/
+hr {
+  border-top-color: rgb(181,43,26);
+  border-top-width: 5px;
+}

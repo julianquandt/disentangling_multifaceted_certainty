@@ -1,0 +1,58 @@
+# General Discussion
+
+The presented set of experiments investigated the impact of different factors on evaluation certainty.
+Using a novel approach that utilized a matched-ensemble evaluation design, we found that evaluation certainty is a multifaceted construct that is influenced by multiple, independent factors.
+
+First, certainty is influenced by the variation in values between components in an ensemble, but this effect could not account for all variance in evaluation certainty.
+Similarly, when experimentally equalizing value positivity and value extremity, there was a persistent effect of component evaluation certainty on ensemble evaluation certainty that was not explained by between-component value consistency, value extremity, or value positivity. 
+
+These results substantiate earlier findings [@lebretonAutomaticIntegrationConfidence2015; @leeValueCertaintyChoice2023], by showing that value positivity is a prominent factor that consistently impacted evaluation certainty. 
+Specifically, when equalizing value positivity, the relation between component evaluation certainty and ensemble evaluation certainty was weak and including value positivity as a predictor of ensemble value certainty in Experiment 1 rendered the relation between component certainty and ensemble certainty non-credible.
+These results suggest that value certainty and value positivity are inherently related.
+
+Most importantly, we predicted that the consistency of value-relevant evidence would be the most likely underlying mechanism behind evaluation certainty in general, but did not find support for this hypothesis.
+First, we argued that more consistent evidence should lead to higher similarity between component evaluations and the resulting ensemble evaluations in high component certainty ensembles compared to low component certainty ensembles.  
+We did not find support for this idea.
+Moreover, within-component value consistency, which we expected to tap into evidence consistency, did not predict ensemble evaluation certainty. 
+In fact, in line with previous research [@bobadilla-suarezSubjectiveValueDecision2020; @polaniaEfficientCodingSubjective2019], value extremity appears to be a stronger predictor of certainty than the consistency of value-relevant evidence.
+This directly contradicts the idea outlined in the introduction (and illustrated in Figure 1) and is inconsistent with the idea that consistency is the underlying factor driving the relation between evaluation extremity and certainty.
+These results are surprising, given the idea that during sampling value-relevant evidence from memory [@bakkourHippocampusSupportsDeliberation2019; @Shadlen2016], more consistent evidence is sampled for high-certainty items and given that previous research directly showed that manipulating evidence consistency predicts evaluation certainty [@quandtConfidenceEvaluationsValuebased2022].
+
+One reason for this contradiction could be that our operationalization of evidence consistency as the standard deviation of repeated evaluations of components is not adequately capturing the consistency of value-relevant evidence.
+Specifically, it is possible that evidence sampled _within_ a single evaluation is consistent, but that for a repeated separate evaluation of the same item, other, potentially also consistent, evidence is sampled, resulting in two *inconsistent* evaluations, which can still both be based on consistent evidence _within_ each individual evaluation.  
+In this case, as a reviewer pointed out, the absence of a relation between variability in component evaluations and ensemble certainty might not be surprising. 
+While previous research suggests that evaluation variability does relate to certainty [@leeEmpiricalTestRole2020] and other potential indicators of consistency of past value-relevant experiences, it was also found that the relation between evaluation variability and manipulated evidence consistency might not be very strong [@quandtConfidenceEvaluationsValuebased2022].
+Hence, it remains possible that more sensitive measures of evidence consistency, such as a distribution builder task [@quandtConfidenceEvaluationsValuebased2022; @Sharpe2000], might provide support for a relation between evidence consistency and certainty.
+The present results, however, do not suggest that the consistency of value-relevant evidence is, contrary to our prediction, the most prominent predictor of certainty. 
+
+The small yet consistent influence of component evaluation certainty on ensemble value certainty hence raises questions about its underlying factors, especially since none of the measured and equalized variables in the present design account for this effect. 
+Previous studies suggest that attentional mechanisms [@brusSourcesConfidenceValuebased2021] or the reliability of evidence for making predictions [@boundy-singerConfidenceReflectsNoisy2022; @koriatSubjectiveConfidenceMonitor2024] might play significant roles in determining certainty in value-based decisions.
+However, it is unclear to what extent these factors might be relevant in the present research, where we investigate evaluation certainty rather than decision certainty, which might be different constructs driven by different value representations [@brusSourcesConfidenceValuebased2021; @petersNeuralRepresentationsSubjective2010; @Pouget2016].
+
+Another factor that was not investigated in the present design, and that might explain the persistent effect of component certainty on ensemble certainty, is the amount of available evidence [@Kvam2016].
+For example, it is possible that the amount of evidence available for each component is not equal, which could lead to differences in certainty.
+Specifically, this could underlie the relation between value positivity and certainty (but not value extremity and certainty), as positive items might be more frequently consumed, leading to a larger amount of evidence available for these items.
+Future research might investigate this idea to complement the present findings and provide an even more complete picture of factors impacting evaluation certainty.
+
+Several shortcomings of the present research should be considered.
+First, measuring certainty in component evaluations only in Experiments 1 to 3 where evidence consistency was not directly measured, and then measuring evidence consistency in Experiment 4 without assessing certainty, prevents us from drawing stronger conclusions about the relationship between these two factors.
+While previous research has shown that consistency in evaluations is related to certainty [@leeEmpiricalTestRole2020; @quandtConfidenceEvaluationsValuebased2022], investigating this in an ensemble-matching design where the two variables could be experimentally equalized, could provide a more comprehensive understanding of the relationship between certainty and consistency.
+Second, despite evidence showing that ensembles are perceived as unified entities [@whitneyEnsemblePerception2018; @yamanashileibFleetingImpressionsEconomic2020], the influence of unique characteristics of components on ensemble evaluation certainty, beyond simple integration, remains a possibility.
+For example, our focus was solely on evaluations, whereas objects are often judged on multiple dimensions, such as tastiness and healthiness for food, which are known to contribute to overall certainty as a multidimensional construct [@leeValueCertaintyChoice2023].
+The ensemble matching design presented here might provide a valuable tool to construct items that can be experimentally controlled on one dimension (e.g. healthiness) while varying other dimensions (e.g. tastiness) to increase our understanding of not only certainty, but also the importance of those attributes in choice processes.
+
+Relatedly, previous research showed that value certainty is a strong predictor of choice accuracy, choice consistency, and choice confidence 
+[@demartinoConfidenceValuebasedChoice2013; @leeChoosingWhatWe2020; @leeTradingMentalEffort2021]. 
+As we did not assess choices between objects in this work, future research could investigate how the different factors that impact evaluation certainty identified in this manuscript translate to decisions between ensembles, especially as considering all relevant attributes of an object (e.g., healthiness and tastiness of foods) is more likely to play a role in decision-making, when attributes are directly goal-relevant [@petersNeuralRepresentationsSubjective2010].
+
+Overall, the present work provides experimental evidence for evaluation certainty being _independently_ impacted by value positivity and value extremity, but provides no evidence for a relation between consistency of value-relevant evidence and certainty in an experimentally controlled setting.
+This represents an incremental but important advancement in understanding the complex factors affecting evaluation certainty and suggests an ensemble-matching design as a valuable tool that could inform various areas within psychological and decision sciences, where understanding certainty in evaluations or attitudes is crucial.
+
+## Constraints on Generality
+
+The present work was conducted on an online sample of participants from the Netherlands and Germany, to make sure that they were familiar with the items used in the experiments.
+Hence, it is not clear how the results would generalize to other populations, such as participants from other countries or cultures, especially non-WEIRD countries, where perception of value-based decisions might differ [@anlloComparingExperienceDescriptionbased2024].
+Another constraint on generality is the use of a specific set of items (food and retail goods) in the present work.
+While these items were chosen to be exemplary of common value-based decisions, it is possible that the results would not generalize to other domains, such as social evaluations or beliefs, that might also inherently be value-based [@kimPsychologyMotivatedRational2020]. 
+Finally, the present work focused on evaluations of items in isolation, and did not investigate comparative evaluations that are often used in real-world decision-making.
+It is important to consider these constraints on generality when interpreting the results and their implications.

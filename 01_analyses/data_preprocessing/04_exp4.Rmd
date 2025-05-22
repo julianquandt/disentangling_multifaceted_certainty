@@ -1,0 +1,537 @@
+---
+title: "Experiment 4 - Data Processing"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    code_download: true
+    code_folding: hide
+    hightlight: github
+    theme: united
+    css: "../../style/style.css"
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    includes:
+      in_header: "../../style/header.html"
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../data_codebook/") })
+---
+
+```{r setup, include=FALSE}
+require(knitr)
+knitr::opts_chunk$set(echo = T, warning = F, cache = F)
+options(width = 80)
+options(scipen = 10)
+source(here::here("01_analyses/00_functions/00_init_scripts.R"))
+# source("../00_functions/osf_auth.R") # this line has to be commented out when reproducing this
+source(here::here("01_analyses/00_functions/01_rmd_helpers.R"))
+source(here::here("01_analyses/00_functions/03_data_helpers.R"))
+run_local = FALSE
+```
+
+
+
+# Download Data from OSF
+
+First we download the Raw Data file from OSF. 
+It contains all participants who have (almost) completed the study and were compensated on prolific.
+The prolific IDs have been replaced with numbers before uploading.
+
+```{r download_raw_data}
+
+if(run_local == TRUE){
+  raw_data <- read.csv(here::here("01_analyses/99_RAW_DATA/03_exp4/data.csv"), stringsAsFactors = F)
+  raw_data$trial_type[which(raw_data$duplicate == "true")] <- "html-slider-response"
+
+
+  # give participants a number
+  subject_nrs <- c(1:length(unique(raw_data$ppn)))
+  set.seed(pp_rnd_seed) # seed is only saved locally.
+  subject_nrs <- sample(subject_nrs)
+  for(i in 1:nrow(raw_data)){
+    raw_data$subject_nr[i] <- subject_nrs[which(unique(raw_data$ppn) == raw_data$ppn[i])]
+  }
+  raw_data <- raw_data[,-which(colnames(raw_data) %in% c("subject", "ppn", "Timestamp", "Age", "Gender", "internal_node_id", "Server_timestamp",
+                                                        "timestamp", "server_timestamp", "time_elapsed", "age", "gender"))]
+
+  raw_data <- raw_data[order(raw_data$subject_nr), ]
+
+  write.table(raw_data, here::here("01_analyses/99_RAW_DATA/03_exp4/data_anom.csv"), row.names = FALSE, sep = ",")
+
+} else {
+  osf_node <- osf_retrieve_node("9y38n") # retrieve OSF node
+  osf_RAW_datafolder <- osf_ls_files(osf_node, path = "RAW_DATA\\Exp4", n_max = Inf) # get data folder
+  raw_data <- osf_load_file(osf_RAW_datafolder$id[1], osf_RAW_datafolder$name[1], 
+                            stringsAsFactors = FALSE)
+}
+```
+
+
+# Split Data
+
+Now, we need to split the raw data file into its components (i.e. the different tasks).
+
+## Single Food Evaluations
+
+```{r extract_foodrating_data}
+#extract food ratings
+item_eval_data <- subset(raw_data, trial_type == "distribution-builder" & 
+                             response_cat == "rating" & stimulus_type == "item")
+
+
+# select relevant columns for rating data of single items
+item_eval_data <- item_eval_data[,which(names(item_eval_data) %in% 
+                                              c("rt", "response", "stim_name", 
+                                                 "subject_nr", 
+                                                 "trial_nr"))]
+for(i in 1:nrow(item_eval_data)){
+  item_eval_data$response[i] <- strsplit(item_eval_data$response[i], "_")[[1]][2]
+
+}
+# rename response to evaluation
+names(item_eval_data)[which(names(item_eval_data) == "response")] <- 
+  "evaluation"
+
+# fix variable types
+item_eval_data$evaluation <- as.numeric(item_eval_data$evaluation)
+item_eval_data$evaluation <- item_eval_data$evaluation*50 # transform to eurocent scale
+
+
+# clean stimulus names and make price columns
+for (i in 1:nrow(item_eval_data)){
+  item_eval_data$stim_name[i] <- gsub('.png','',
+                                        basename(item_eval_data$stim_name[i]))
+  item_eval_data$price_exact[i] <- as.numeric(sub(".*(\\d+{4}).*$", "\\1", item_eval_data$stim_name[i]))
+  item_eval_data$price_rounded[i] <- plyr::round_any(item_eval_data$price_exact[i], 50) 
+}
+```
+
+
+### Data preview and codebook
+
+`r ncol(item_eval_data)` relevant variables were extracted:
+
+<div class="table-container">
+
+```{r single_evaluation_codebook, echo = F}
+vars_single_eval <- colnames(item_eval_data)
+varexplanation_single_eval <- 
+  c("response time for each evaluation", 
+    "evaluation (0-2500 eurocents)", 
+    "the respective item that was presented", 
+    "the number of the respective trial",
+    "the subject-number that identifies unique participants",
+    "the real price of the item presented",
+    "the price of the item rounded to response scale"
+    )
+
+tcb_single_eval <- make_table(data.frame(cbind(vars_single_eval, 
+                                               varexplanation_single_eval)))
+tcb_single_eval <- set_header_labels(tcb_single_eval, 
+                                     vars_single_eval = "variable", 
+                               varexplanation_single_eval = "explanation")
+tcb_single_eval
+```
+
+The data file looks like this:
+
+<div class="table-container">
+`r make_table(head(item_eval_data), ali = "right", aw = 2)`
+</div>
+
+## Basket Evaluations
+
+```{r extract_basketrating_data}
+#extract basket evaluations
+basket_eval_data <- subset(raw_data, trial_type == "distribution-builder" & response_cat == "rating" & stimulus_type == "basket")
+# select relevant columns for rating data of single items
+basket_eval_data <- basket_eval_data[,which(names(basket_eval_data) %in% 
+                                              c("rt", "response",
+                                                "stim_name", 
+                                                "subject_nr", "trial_nr",
+                                                "item1_value", 
+                                                "item1_value_ex", 
+                                                "item1_confidence", 
+                                                "item1_valueCat", 
+                                                "item1_confidenceCat",
+                                                "item2_value", 
+                                                "item2_value_ex", 
+                                                "item2_confidence", 
+                                                "item2_valueCat", 
+                                                "item2_confidenceCat",
+                                                "item3_value", 
+                                                "item3_value_ex", 
+                                                "item3_confidence", 
+                                                "item3_valueCat", 
+                                                "item3_confidenceCat",
+                                                "item1_pos", "item2_pos", 
+                                                "item3_pos", "item1_name", 
+                                                "item2_name", "item3_name",
+                                                "basket_cat", 
+                                                "basket_value", 
+                                                "basket_value_ex", 
+                                                "basket_conf", 
+                                                "basket_cluster", 
+                                                "cluster_size", 
+                                                "basket_matching_var", 
+                                                "basket_nr"
+                                                ))]
+for(i in 1:nrow(basket_eval_data)){
+  basket_eval_data$response[i] <- strsplit(basket_eval_data$response[i], "_")[[1]][2]
+
+}
+
+# rename response to evaluation
+names(basket_eval_data)[which(names(basket_eval_data) == "response")] <- 
+  "evaluation"
+
+
+basket_eval_data$evaluation <- as.numeric(basket_eval_data$evaluation)
+basket_eval_data$evaluation <- basket_eval_data$evaluation*150 # transform to eurocent scale
+
+# rename baskets
+for(i in 1:nrow(basket_eval_data)){
+  
+  # extract individual items of baskets
+  # remove file path and concatenate them to single string
+  # items should already be sorted but sorting is applied gain to be sure
+  basket_eval_data$stim_name[i] <- paste(sort(as.vector(
+    sapply(strsplit(basket_eval_data$stim_name[i], ","), 
+           function(x) gsub('.png','',basename(x))))), collapse = "")
+  basket_eval_data$item1_name[i] <- gsub('.png','',
+                                      basename(basket_eval_data$item1_name[i]))
+  basket_eval_data$item2_name[i] <- gsub('.png','',
+                                      basename(basket_eval_data$item2_name[i]))
+  basket_eval_data$item3_name[i] <- gsub('.png','',
+                                      basename(basket_eval_data$item3_name[i]))
+  
+  basket_eval_data$price_exact[i] <- (as.numeric(sub(".*(\\d+{4}).*$", "\\1", basket_eval_data$item1_name[i]))+
+                                      as.numeric(sub(".*(\\d+{4}).*$", "\\1", basket_eval_data$item2_name[i]))+
+                                      as.numeric(sub(".*(\\d+{4}).*$", "\\1", basket_eval_data$item3_name[i]))
+                                    )
+  
+    basket_eval_data$price_rounded[i] <- (plyr::round_any(as.numeric(sub(".*(\\d+{4}).*$", "\\1", basket_eval_data$item1_name[i])), 50)+
+                                      plyr::round_any(as.numeric(sub(".*(\\d+{4}).*$", "\\1", basket_eval_data$item2_name[i])), 50)+
+                                      plyr::round_any(as.numeric(sub(".*(\\d+{4}).*$", "\\1", basket_eval_data$item3_name[i])), 50)
+                                    )
+  
+}
+```
+
+### Data preview and codebook
+
+`r ncol(basket_eval_data)` relevant variables were extracted:
+
+<div class="table-container">
+
+```{r single_basketuation_codebook, echo = F}
+vars_single_basket <- colnames(basket_eval_data)
+varexplanation_single_basket <- 
+  c("response time for each rating", 
+    "basket evaluation (0-7500 cents)", 
+    "the items in the respective basket that was presented", 
+    "the number of the respective trial", 
+    "Where was item 1 positioned when displaying the basket in this trial?",
+    "Where was item 2 positioned when displaying the basket in this trial?",
+    "Where was item 3 positioned when displaying the basket in this trial?",
+    "Which item was item 1?",
+    "Which item was item 2?",
+    "Which item was item 3?",
+    "which category is this basket (high or low in either value consistency of items (rating_sd) or extremity of items (evaluation_ex))",
+    "average valuation of items in the basket",
+    "average value extremity of items in basket ",
+    "cluster number that the basket was from for specific participant",
+    "cluster size of the cluster",
+    "basket number within cluster",
+    "matching variable that was used for the basket (consistency or value extremity)",
+    "the subject number that distinguishes participants",
+    "sum of prices of items in basket",
+    "price rounded to resolution of response scale"
+    )
+
+tcb_single_basket <- make_table(data.frame(cbind(vars_single_basket, 
+                                               varexplanation_single_basket)))
+tcb_single_basket <- set_header_labels(tcb_single_basket, 
+                                     vars_single_basket = "variable", 
+                               varexplanation_single_basket = "explanation")
+tcb_single_basket
+```
+
+The data file looks like this:
+
+<div class="table-container">
+`r make_table(head(basket_eval_data), ali = "right", aw = 2)`
+</div>
+
+
+
+
+
+
+
+
+## Basket Confidence Ratings
+
+```{r extract_basketconfidence_data}
+
+#extract basket evaluations
+basket_conf_data <- subset(raw_data, trial_type == "html-slider-response" & response_cat == "confidence" & stimulus_type == "basket")
+# select relevant columns for rating data of single items
+basket_conf_data <- basket_conf_data[,which(names(basket_conf_data) %in% 
+                                              c("rt", "response",
+                                                "stim_name", 
+                                                "subject_nr", "trial_nr",
+                                                "item1_avg_rating", 
+                                                "item1_avg_rating_ex", 
+                                                "item1_rating_sd", 
+                                                "item2_avg_rating", 
+                                                "item2_avg_rating_ex", 
+                                                "item2_rating_sd", 
+                                                "item3_avg_rating", 
+                                                "item3_avg_rating_ex", 
+                                                "item3_rating_sd", 
+                                                "item1_pos", "item2_pos", 
+                                                "item3_pos", "item1_name", 
+                                                "item2_name", "item3_name",
+                                                "basket_cat", 
+                                                "basket_value", 
+                                                "basket_value_ex", 
+                                                "basket_rating_sd", 
+                                                "basket_cluster", 
+                                                "cluster_size", 
+                                                "basket_matching_var", 
+                                                "basket_nr" ,
+                                                "duplicate" 
+                                                ))]
+# rename response to evaluation
+names(basket_conf_data)[which(names(basket_conf_data) == "response")] <- 
+  "confidence"
+
+
+# fix variable types
+basket_conf_data$confidence <- as.numeric(basket_conf_data$confidence)
+
+# rename baskets
+basket_conf_data$evaluation <- NA
+for(i in 1:nrow(basket_conf_data)){
+  
+  # extract individual items of baskets
+  # remove file path and concatenate them to single string
+  # items should already be sorted but sorting is applied gain to be sure
+  basket_conf_data$stim_name[i] <- paste(sort(as.vector(
+    sapply(strsplit(basket_conf_data$stim_name[i], ","), 
+           function(x) gsub('.png','',basename(x))))), collapse = "")
+  basket_conf_data$item1_name[i] <- gsub('.png','',
+                                      basename(basket_conf_data$item1_name[i]))
+  basket_conf_data$item2_name[i] <- gsub('.png','',
+                                      basename(basket_conf_data$item2_name[i]))
+  basket_conf_data$item3_name[i] <- gsub('.png','',
+                                      basename(basket_conf_data$item3_name[i]))
+  
+  basket_conf_data$price_exact[i] <- (as.numeric(sub(".*(\\d+{4}).*$", "\\1", basket_conf_data$item1_name[i]))+
+                                      as.numeric(sub(".*(\\d+{4}).*$", "\\1", basket_conf_data$item2_name[i]))+
+                                      as.numeric(sub(".*(\\d+{4}).*$", "\\1", basket_conf_data$item3_name[i]))
+                                    )
+  
+    basket_conf_data$price_rounded[i] <- (plyr::round_any(as.numeric(sub(".*(\\d+{4}).*$", "\\1", basket_conf_data$item1_name[i])), 50)+
+                                      plyr::round_any(as.numeric(sub(".*(\\d+{4}).*$", "\\1", basket_conf_data$item2_name[i])), 50)+
+                                      plyr::round_any(as.numeric(sub(".*(\\d+{4}).*$", "\\1", basket_conf_data$item3_name[i])), 50)
+                                    )
+  
+}
+basket_conf_nodupes <- subset(basket_conf_data, duplicate == "false")
+for(i in 1:nrow(basket_conf_nodupes)){
+  basket_conf_nodupes$evaluation[i] <-  subset(basket_eval_data, subject_nr == basket_conf_nodupes$subject_nr[i] & stim_name == basket_conf_nodupes$stim_name[i])$evaluation
+}
+for(i in 1:nrow(basket_conf_data)){
+  basket_conf_data$evaluation[i] <-  subset(basket_conf_nodupes, subject_nr == basket_conf_data$subject_nr[i] & stim_name == basket_conf_data$stim_name[i])$evaluation
+}
+
+
+basket_conf_data_dupes <- which(basket_conf_data$duplicate  == "true")
+for(i in basket_conf_data_dupes){
+  sub <- basket_conf_data$subject_nr[i]
+  bask <- basket_conf_data$stim_name[i]
+  orig_basket <- subset(basket_conf_nodupes, subject_nr == sub & stim_name == bask)
+  basket_conf_data$confidence[i] <- orig_basket$confidence
+  basket_conf_data$rt[i] <- orig_basket$rt
+  basket_conf_data$trial_nr[i] <- orig_basket$trial_nr
+}
+
+```
+
+### Data preview and codebook
+
+`r ncol(basket_conf_data)` relevant variables were extracted:
+
+<div class="table-container">
+
+```{r basket_confidence_codebook, echo = F}
+vars_basket_conf <- colnames(basket_conf_data)
+varexplanation_basket_conf <- 
+  c("response time for each rating", 
+    "basket confidence (0-200)", 
+    "the items in the respective basket that was presented", 
+    "the number of the respective trial", 
+    "valuation of the first item in basket ",
+    "value extremity of the first item in basket",
+    "consistency of ratings of the first item in basket",
+    "valuation of the second item in basket ",
+    "value extremity of the second item in basket ",
+    "consistency of ratings of the second item in basket",
+    "valuation of the third item in basket ",
+    "value extremity of the third item in basket ",
+    "consistency of ratings of the third item in basket",
+    "Where was item 1 positioned when displaying the basket in this trial?",
+    "Where was item 2 positioned when displaying the basket in this trial?",
+    "Where was item 3 positioned when displaying the basket in this trial?",
+    "Which item was item 1?",
+    "Which item was item 2?",
+    "Which item was item 3?",
+    "which category is this basket (high or low in either value consistency of items (rating_sd) or extremity of items (evaluation_ex))",
+    "average valuation of items in the basket",
+    "average value extremity of items in basket ",
+    "consistency of single items in the basket",
+    "cluster number that the basket was from for specific participant",
+    "cluster size of the cluster",
+    "basket number within cluster",
+    "matching variable that was used for the basket (consistency or value extremity)",
+    "indicates whether rating was restored from a 'duplicate' meaning that if a basket was present in both matching conditions, it was only rated once",
+    "the subject number that distinguishes participants",
+    "basket evaluation (0 - 7500 eurocents)",
+    "sum of prices of items in basket",
+    "price rounded to resolution of response scale"
+    )
+
+tcb_basket_conf <- make_table(data.frame(cbind(vars_basket_conf, 
+                                               varexplanation_basket_conf)))
+tcb_basket_conf <- set_header_labels(tcb_basket_conf, 
+                                     vars_basket_conf = "variable", 
+                               varexplanation_basket_conf = "explanation")
+tcb_basket_conf
+```
+
+The data file looks like this:
+
+<div class="table-container">
+`r make_table(head(basket_conf_data), ali = "right", aw = 2)`
+</div>
+
+
+
+# Check whether all data was extracted
+
+```{r test_data_complete}
+
+
+sub_notin <- raw_data[which(row.names(raw_data) %in% 
+                              c(row.names(item_eval_data), 
+                                row.names(basket_eval_data), 
+                                row.names(basket_conf_data)) == FALSE),]
+
+stopifnot(all(sub_notin$response_cat == "auction" | sub_notin$response_cat == "auction_output" | (sub_notin$response_cat == "rating" & sub_notin$dupblicate == "true")))
+```
+
+
+
+# Add Evaluations and Confidence to respective other data frames
+
+To make analyses easier, the evaluations from the item-evaluation and basket-evaluation files will be added to the respective confidence files and vice versa.
+
+```{r add_vars_to_eval_con}
+
+# make row identifiers
+## single evaluations
+item_eval_data$r_ident <- paste(item_eval_data$subject, item_eval_data$stim_name, item_eval_data$trial_nr, sep = "-")
+### test for identical length
+stopifnot(length(unique(item_eval_data$r_ident)) == nrow(item_eval_data)) 
+
+## basket evaluation
+basket_eval_data$r_ident <- paste(basket_eval_data$subject, basket_eval_data$stim_name, basket_eval_data$basket_matching_var, sep = "-")
+### test for identical length
+stopifnot(length(unique(basket_eval_data$r_ident)) == nrow(basket_eval_data))
+## basket confidence
+basket_conf_data$r_ident <- paste(basket_conf_data$subject, basket_conf_data$stim_name, basket_conf_data$basket_matching_var, sep = "-")
+### test for identical length
+stopifnot(length(unique(basket_conf_data$r_ident)) == nrow(basket_conf_data))
+
+
+# move attention check data to other df
+atcheck_data <- subset(item_eval_data, substr(stim_name, 1, 3) == "000")
+```
+
+
+# Add value diversity and mean confidence rating variables
+
+```{r add_IVs}
+for(i in 1:nrow(basket_eval_data)){
+  basket_eval_data$value_sd[i] <- sd(c(basket_eval_data$item1_value[i]*50, basket_eval_data$item2_value[i]*50, basket_eval_data$item3_value[i]*50))
+  
+}
+
+for(i in 1:nrow(basket_conf_data)){
+  basket_conf_data$value_sd[i] <- sd(c(basket_conf_data$item1_avg_rating[i]*50, basket_conf_data$item2_avg_rating[i]*50, basket_conf_data$item3_avg_rating[i]*50))
+}
+```
+
+# Add markers for preregistered exclusion criteria
+
+```{r mark_exclusions}
+pp_exclude_list <- c()
+
+for(i in unique(item_eval_data$subject_nr)){
+  tmp_dat <- subset(item_eval_data, subject_nr == i)
+  tmp_inter <- hdi(tmp_dat$evaluation, credMass = .79, allowSplit = T)
+  if(abs(tmp_inter[1]-tmp_inter[2]) <= 125){
+    pp_exclude_list <- append(pp_exclude_list, i)
+  }
+}
+
+atfails <- atcheck_data[which(atcheck_data$evaluation != atcheck_data$price_rounded),]
+atfails_subject <- atcheck_data$subject_nr[which(atcheck_data$evaluation != atcheck_data$price_rounded)]
+atfails_subject <- names(which(table(atfails_subject) > 1))
+
+pp_exclude_list <- append(unique(pp_exclude_list), atfails_subject)
+
+
+for(i in 1:nrow(item_eval_data)){
+  item_eval_data$prereg_exclusion[i] <- 
+    ifelse(item_eval_data$subject_nr[i] %in% pp_exclude_list, 1, 0)
+}
+
+
+
+for(i in 1:nrow(basket_eval_data)){
+  basket_eval_data$prereg_exclusion[i] <- 
+    ifelse(basket_eval_data$subject_nr[i] %in% pp_exclude_list, 1, 0)
+}
+
+for(i in 1:nrow(basket_conf_data)){
+  basket_conf_data$prereg_exclusion[i] <- 
+    ifelse(basket_conf_data$subject_nr[i] %in% pp_exclude_list, 1, 0)
+}
+```
+
+
+# Upload data to OSF
+
+
+```{r upload_to_osf, output = FALSE, eval = FALSE} 
+# mark upload folder 
+processed_data_dir <- osf_ls_files(osf_node)[which(osf_ls_files(osf_node)$name == "processed_data"),]
+
+# single evaluations 
+write.csv(item_eval_data, "item_eval_data_exp4.csv") 
+osf_upload(processed_data_dir, 
+          path = "item_eval_data_exp4.csv", conflicts = "overwrite")
+
+# basket evaluations 
+write.csv(basket_eval_data, "basket_eval_data_exp4.csv") 
+osf_upload(processed_data_dir, 
+          path = "basket_eval_data_exp4.csv", conflicts = "overwrite")
+
+# basket confidence 
+write.csv(basket_conf_data, "basket_conf_data_exp4.csv")
+osf_upload(processed_data_dir, 
+          path = "basket_conf_data_exp4.csv", conflicts = "overwrite")
+```
