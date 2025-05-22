@@ -1,3 +1,7 @@
+# About this repository
+
+This repository contains the reproducible code for the paper "Disentangling the Multifaceted Nature of Certainty in Evaluations" by Quandt, Figner, Holland, Carere, Eversdijk & Veling (in prep).
+
 # How to use this repository
 
 This folder can be used to produce all reported analyses, perform data preprocessing (the output of which is in the data_codebook folder), and generate figures and tables for the paper.
