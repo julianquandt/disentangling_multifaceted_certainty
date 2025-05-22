@@ -83,7 +83,7 @@ knitr::opts_chunk$set(echo = FALSE, cache = T, warning = FALSE, message = FALSE)
 source(here::here("01_analyses/00_functions/00_init_scripts.R"))
 source(here::here("01_analyses/00_functions/02_brms_helpers.R"))
 source(here::here("01_analyses/00_functions/03_data_helpers.R"))
-source(here::here("01_analyses/00_functions/osf_auth.R"))
+# source(here::here("01_analyses/00_functions/osf_auth.R"))
 fit_models <- FALSE # set this to TRUE if you want to refit the models during compilation or to fit the models manually first. if set to FALSE it will directly read RDS files that need to exist in the folder "here::here("01_analyses/fitted_models/")"
 ```
 

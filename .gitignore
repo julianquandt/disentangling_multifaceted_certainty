@@ -1,2 +1,8 @@
 renv
 *.rds
+*.pdf
+*.tex
+*.log
+*_cache
+*_files
+00_manuscript/grateful-refs.bib

@@ -88,6 +88,7 @@ if(!exists("init_scripts_executed")){
   require(cowplot)
   require(emmeans)
   require(devtools)
+  require(here)
   
   # misc --------------------------------------------------------------------
   
